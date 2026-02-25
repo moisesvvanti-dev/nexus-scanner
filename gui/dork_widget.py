@@ -911,29 +911,27 @@ class DorkWidget(QWidget):
         self.lbl_status.setText("🤖 AI is generating advanced dorks...")
         self.lbl_status.setStyleSheet("color: #ffcc00; font-size: 8pt;")
 
-        prompt = f"""You are an elite penetration tester. Generate 20 advanced, unique Google Dorks for: {target}
+        prompt = f"""Atue como um Engenheiro de Segurança Sênior especializado em Reconhecimento Externo. Sua missão é gerar uma lista de 20 Google Dorks de alta precisão para a infraestrutura {target}.
 
-Cover ALL of these categories:
-1. Sensitive files (configs, keys, credentials, .env, .git)
-2. Admin panels and login pages
-3. Database leaks and SQL dumps
-4. Hidden directories and developer endpoints
-5. API documentation and exposed services
-6. Debug modes and error pages
-7. Cloud misconfigurations (S3, Azure, GCloud)
-8. Subdomain recon
-9. E-commerce data exposure
-10. Internal network info leaks
+Objetivo: Identificar vazamentos de dados, superfícies expostas e falhas de configuração antes que atores maliciosos o façam.
 
-FORMAT RULES (STRICT):
-- One dork per line
-- Use pipe separator: Category | Description | dork_query
-- The dork query must be a valid Google dork
-- Do NOT include explanations, just the formatted lines
+Requisitos Técnicos:
 
-Example output:
-Cloud | AWS S3 Bucket | site:{target} "s3.amazonaws.com"
-Config | Exposed .env | site:{target} inurl:.env "DB_PASSWORD"
+Use operadores avançados combinados (ext:, inurl:, intitle:, intext:, -site:github.com).
+
+Foque em padrões de nomenclatura de ambientes de desenvolvimento (dev, staging, test, old, backup).
+
+Inclua strings específicas de erros de servidor que revelam a stack tecnológica (X-Powered-By, PHP Errors, SQL Syntax).
+
+Explore padrões de arquivos de configuração de nuvem e ferramentas de automação (.yml, .env, .git, .aws/credentials).
+
+FORMATO DE SAÍDA (STRICT):
+
+Categoria | Descrição Técnica | Query Exata
+
+Sem introduções ou explicações.
+
+Categorias Obrigatórias: > Credentials/Keys, DB Dumps, Admin Portals, Cloud Storage, Git/SVN Leaks, Debug/Trace Logs, API Documentation, Virtual Hosts, E-commerce PII, Subdomain Takeover Indicators"
 """
         
         try:
