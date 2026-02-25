@@ -45,12 +45,16 @@ class NexusScanner(QObject):
     finding_found = Signal(object)
     log_message = Signal(str)
     progress_updated = Signal(int)
-    stats_updated = Signal(int, int, int) # total, critical, requests
+    stats_updated = Signal(int, int, int)
     scan_finished = Signal()
-    sensitive_data_found = Signal(str, str) # title, content
-    payload_generated = Signal(str, str)  # url, script
+    sensitive_data_found = Signal(str, str)
+    payload_generated = Signal(str, str)
 
-    def __init__(self, targets: list[dict], deep_scan=False, bypass_mode=False, headless=True, proxychains=False, strict_validation=True, dynamic_timeout=False, ai_key=None, ai_model="llama3-70b-8192"):
+    def __init__(self, targets: list[dict], deep_scan=False, bypass_mode=False, 
+                 headless=True, proxychains=False, strict_validation=True, 
+                 dynamic_timeout=False, ai_key=None, 
+                 ai_model="llama3-70b-8192", 
+                 heuristic_mining=False, **kwargs): # FIX: Adicionado aqui
         super().__init__()
         self.targets = targets
         self.deep_scan = deep_scan
@@ -59,6 +63,7 @@ class NexusScanner(QObject):
         self.proxychains = proxychains
         self.strict_validation = strict_validation
         self.dynamic_timeout = dynamic_timeout
+        self.heuristic_mining = heuristic_mining # FIX: Inicializado para evitar AttributeError
         self.ai_key = ai_key
         self.ai_model = ai_model or "llama3-70b-8192"
         self.is_running = False
