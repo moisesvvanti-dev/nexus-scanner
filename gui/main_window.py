@@ -45,7 +45,7 @@ class MainWindow(QMainWindow):
         self.init_ui()
 
     def init_ui(self):
-        self.setWindowTitle("NEXUS CYBER-OFFENSIVE SUITE v20.0 - ULTIMATE")
+        self.setWindowTitle("NEXUS CYBER-OFFENSIVE SUITE v21.0 - ULTIMATE")
         self.resize(1400, 900)
         self.setStyleSheet(MAIN_STYLE)
 

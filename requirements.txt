@@ -1,23 +1,25 @@
-aiohttp>=3.9.3
-PySide6>=6.6.1
+# Core Execution & GUI
+PySide6>=6.6.0
 qasync>=0.27.1
-rich>=13.7.1
-beautifulsoup4>=4.12.3
-dnspython>=2.6.1
-fake-useragent>=1.5.1
-tldextract>=5.1.0
-python-whois>=0.9.0
-wafw00f>=2.2.0
-playwright>=1.41.0
-aiofiles>=23.2.1
-lxml>=5.1.0
+
+# Asynchronous Networking & Scraping
+aiohttp>=3.9.0
 nest_asyncio>=1.6.0
-cloudscraper==1.2.71
-impacket>=0.10.0
-icmplib>=2.1.1
-yarl>=1.7.2
-pyasn1==0.4.8
-certifi>=2024.7.4
-requests>=2.32.4
-psutil>=5.9.3
-pyroxy @ git+https://github.com/MatrixTM/PyRoxy.git
+beautifulsoup4>=4.12.0
+fake-useragent>=1.4.0
+requests>=2.31.0
+playwright>=1.41.0
+cloudscraper>=1.2.71
+
+# DNS, Recon & Cryptography
+dnspython>=2.6.0
+python-whois>=0.8.0
+tldextract>=5.1.0
+yarl>=1.9.4
+
+# Offensive Identifiers (Optional/Specific Tooling Bridges if needed by Core)
+# wafw00f>=2.2.0
+# impacket>=0.11.0
+
+# PyRoxy - Proxy Management Local Instance
+# (Can be fetched via git, or handled natively if the src code is embedded)

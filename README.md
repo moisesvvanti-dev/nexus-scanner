@@ -1,102 +1,106 @@
 <div align="center">
-  <img src="https://raw.githubusercontent.com/MatrixTM/PyRoxy/master/logo.png" alt="Logo" width="100"/>
-  <h1>PentestGPT (Nexus Ultima v20)</h1>
-  <p><strong>Advanced Penetration Testing & Reconnaissance Framework Powered by AI</strong></p>
+  <img src="https://raw.githubusercontent.com/MatrixTM/PyRoxy/master/logo.png" alt="PentestGPT Logo" width="120" style="margin-bottom: 20px;"/>
+  <h1 style="color: #00ffcc; text-shadow: 0 0 10px #00ffcc;">PentestGPT — Nexus Ultima v21.0</h1>
+  <p><strong>🔥 O Ecossistema Definitivo de Segurança Ofensiva & Reconhecimento Guiado por Inteligência Artificial 🔥</strong></p>
   
   <p>
-    <a href="https://python.org"><img src="https://img.shields.io/badge/Python-3.10+-blue?style=for-the-badge&logo=python&logoColor=white" alt="Python"></a>
-    <a href="https://github.com/MatrixTM/PyRoxy"><img src="https://img.shields.io/badge/Powered_by-PyRoxy-red?style=for-the-badge" alt="PyRoxy"></a>
-    <a href="#"><img src="https://img.shields.io/badge/License-MIT-green?style=for-the-badge" alt="License"></a>
+    <a href="https://python.org"><img src="https://img.shields.io/badge/Python-3.10+-1f425f.svg?style=for-the-badge&logo=python&logoColor=white" alt="Python"></a>
+    <a href="https://github.com/MatrixTM/PyRoxy"><img src="https://img.shields.io/badge/Powered_by-PyRoxy-ff0055?style=for-the-badge" alt="PyRoxy"></a>
+    <img src="https://img.shields.io/badge/Status-Active_Development-00ffcc?style=for-the-badge" alt="Status">
+    <a href="#aviso-legal-e-responsabilidades-️"><img src="https://img.shields.io/badge/Usage-Red_Team_Only-ff2a2a?style=for-the-badge" alt="Red Team"></a>
   </p>
 </div>
 
----
+<br>
 
-## 📌 O que é o PentestGPT?
-
-**PentestGPT (Nexus Ultima)** é uma ferramenta completa e automatizada de segurança ofensiva focada em *Reconhecimento (Recon)*, *Análise de Vulnerabilidades* e *Descoberta de Dados Sensíveis*. Construída puramente em Python (utilizando PySide6 para uma interface gráfica Cyberpunk imersiva), a ferramenta integra algoritmos inteligentes de verificação rigorosa (**Strict Validation**) para eliminar falsos positivos e atua com um sistema robusto de rotação de proxies (**ProxyManager**) para testes contínuos e resilientes em larga escala.
-
-Ele combina varredura da web, scraping de JavaScript, fuzzing de parâmetros heurísticos e inteligência artificial para fornecer relatórios detalhados sobre as falhas de segurança de um alvo, tudo isso através de engenharias assíncronas super-rápidas (`aiohttp` e `qasync`).
-
-## 🚀 Principais Funcionalidades
-
-*   🛡️ **Smart Proxy Manager**: Rotação avançada de proxies (HTTP/SOCKS4/SOCKS5) coletados de múltiplas fontes públicas. O sistema testará conectividade (ping/latência), calculará pontuações de saúde e descartará automaticamente *dead-proxies* em *background*, garantindo que seus scans nunca sejam paralisados por IPs ruins.
-*   🎯 **Strict Validation Engine**: Motor avançado de verificação *Anti-False-Positive*. O `DirectoryBruter` mapeia a variância dinâmica das páginas 404 (Soft 404s), bloqueando ruídos do servidor. O `CVEScanner` valida o tamanho do conteúdo e impede a reflexão de payloads enganosos, fornecendo apenas "Hits" 100% reais e validados.
-*   🔍 **Subdomain Enumeration & Takeover**: Varredura em profundidade de transparência de certificados (`crt.sh`) aliada à checagem ativa de vulnerabilidades de sequestro de subdomínio (*Subdomain Takeover*).
-*   🔑 **Sensitive Data Hunter**: Busca agressiva para encontrar e formatar painéis administrativos vazados, logs expostos, credenciais perdidas (SSH, AWS Keys, JWTs, `.env`, `.sql`). Possui verificação de métrica de entropia (Shannon Entropy) para diferenciar senhas reais de *placeholders*.
-*   🕷️ **JavaScript Asset Mining**: Extração inteligente de lógica de negócios, *endpoints* de APIs escondidos (ex: `/api/v1/...`) e chaves *hardcoded* expostas em arquivos de front-end minificados `.js`.
-*   🛠️ **Port Scanning & Banner Grabbing**: Identificação rápida das portas corporativas mais críticas da web, revelando serviços ativos como HTTP, HTTPS, SSH, MySQL, FTP e bancos de dados não autenticados.
-*   🔥 **Heuristic Parameter Fuzzing**: Testes automatizados focados para descobrir SQLi, LFI, RCE, e XSS Refletidos diretamente dos parâmetros de URL capturados durante o recon.
-*   🤖 **AI Assistant Integration**: Integração nativa no painel com capacidades LLMs avançadas (ex: Llama3 via Groq API) para analisar anomalias de código, gerar scripts personalizados de exploit e interpretar comportamentos complexos de respostas dos servidores durante o Pentest.
+> *PentestGPT não é apenas um scanner de vulnerabilidades convencional. É uma Suíte Tática Militar de Auditoria Cibernética construída em Python. Nós juntamos scraping assíncrono brutal (`aiohttp`), evasão de firewalls empresariais avançados (WAF Evasion) e a criatividade analítica de modelos LLM (Groq & Llama3) para caçar, documentar e demonstrar vulnerabilidades mortais em ambientes web massivos com tolerância zero a falsos positivos.*
 
 ---
 
-## ⚙️ Instalação Automática (Windows)
+## 📌 Arquitetura do Sistema
 
-A ferramenta foi projetada para ser iniciante ou *Plug-and-Play*. Criamos um **auto-instalador em Batch** (`install.bat`) que lidará com todo o ecossistema e ambiente local para você.
+O **PentestGPT (Nexus Ultima)** funciona como um organismo ofensivo inteligente. Em vez de simplesmente injetar requisições aleatórias na parede e torcer para algo quebrar, ele aplica engenharia reversa tática:
 
-### Passo a Passo:
+1.  **Reconhecimento Profundo (Deep Recon):** Mapeamento agressivo de portas, descobrimento de IPs ocultos e mineração de arquivos JavaScript minificados atrás de tokens perdidos e APIs esquecidas.
+2.  **Strict Validation Engine:** Motores de inteligência purificam o "Lixo HTTP", ignorando páginas de "Not Found" mentirosas (Soft 404s) e garantindo que cada vulnerabilidade relatada no seu terminal de comando seja 100% testada e provada real. Nenhum falso positivo para lotar seu relatório.
+3.  **Fuzzing Mutacional Dinâmico:** Se um firewall de mercado tenta bloquear nossos testes SQLi ou XSS, o sistema recodifica e muta (Hexadecimal, Null Bytes, Double-URL Encoding) a malícia em *tempo real* para penetrar as defesas perfeitamente invisível.
 
-1. Baixe os arquivos deste repositório ou clone usando o git localmente:
+---
+
+## 🚀 Arsenal de Funcionalidades V21.0
+
+A versão `v21.0` eleva os testes de intrusão a um nível empresarial com as seguintes ferramentas exclusivas de *Bypass* e Ataque:
+
+*   ⚔️ **Análise Bit-a-Bit Extrema:** Nosso motor assíncrono hiper-rápido (`qasync`) desmembra o código fonte do site alvo *linha por linha*. Nenhuma tag HTML obscura, variável secreta escondida ou anomalia de Header HTTP escapa da análise tática.
+*   🛡️ **Smart Proxy Manager & IP Rotation:** Sucesso em varreduras exige invisibilidade. Este módulo pega listas brutas de SOCKS4/5 públicos, inspeciona o ping de cada um, exclui conexões mortas (dead-proxies) e rotaciona o seu IP de ataque a cada 5 requisições. O *Rate-Limiting* e as proibições por Firewall quebram diante dessa barragem descentralizada.
+*   🧱 **Advanced WAF Evasion (Payload Obfuscation):** Mutações matemáticas instantâneas. O PentestGPT codifica automaticamente seus injetores SQL e XSS usando escapes Unicode complexos e injeção de "Bytes Nulos" (`%00`). Ele flana pelas regras restritas de WAFs famosos da Cloudflare e AWS como se fosse tráfego seguro de um cliente comum.
+*   🔓 **Smart Error Bypass (401/403/500):** Bloqueado na porta de um painel de Administrador? O sistema entra no "Modo Bruto". Ao ver um código `403 Forbidden`, o scanner manipula automaticamente regras HTTP (trocando verbos de `POST` para `GET`), e injeta sujeira e truques de *Path Normalization* (ex: tentar `target.com/%2e/admin/`) para coagir o servidor confuso a te devolver os dados confidenciais contornando seus próprios filtros de acesso.
+*   ⚡ **HTTP Request Smuggling (CL.TE / TE.CL):** A joia da coroa para atacar arquiteturas cloud modernas. Dispara pacotes de rede estruturalmente imperfeitos, misturando tamanhos falsos e duplicados nos headers `Content-Length` e `Transfer-Encoding` para envenenar os balanceadores de carga front-end (Load Balancers) e acessar impunemente o backend sensível abrigado na Intranet da empresa alvo.
+*   🎭 **Context-Aware Payload Encoding:** Todo e qualquer teste nocivo executado, seja uma CVE da base NVD ou um injetor SQL genérico, é dinamicamente "trilhado" (URL Encodado, Base64 Duplo, Charcode) para garantir que as strings quebradas atinjam e fujam ilesas da raspagem do servidor antes de serem explodidas.
+*   🧠 **Inteligência Artificial Nativa (AI Bridge):** Um conselheiro hacker vivo dentro do seu terminal. Conectado perfeitamente via protocolo da Groq API, a aba "Script Lab" analisa o código de tráfego de saída do site e as proteções em ação, e dita on-the-fly vetores cirúrgicos novos e moldados sob medida para o ambiente específico operando com o motor Llama3 massivo.
+
+---
+
+## ⚙️ Instalação Passo a Passo Assistida (Windows)
+
+O **PentestGPT** é denso tecnologicamente, mas sua adoção é intencionalmente fluida (*Plug-and-Play*). Disponibilizamos um ambiente de inicialização em Batch que dispensa conhecimento profundo em configuração de máquinas virtuais de hackers.
+
+### O Método Automático
+
+1. **Puxe o Arsenal para a sua Base:** Faça Download deste ZIP, ou use a engenharia `Git`:
    ```cmd
    git clone https://github.com/moisesvvanti-dev/nexus-scanner.git
    cd nexus-scanner
    ```
-2. Caso não o tenha, instale o **[Python 3.10 ou superior](https://www.python.org/downloads/)** e lembre-se de marcar a caixa de *"Add Python to PATH"* no instalador.
-3. Na pasta raiz, dê um duplo clique no arquivo **`install.bat`**.
-4. O instalador operará **automaticamente**:
-   * Checará as dependências do Python em sua máquina.
-   * Atualizará o construtor do pacote básico (`pip`).
-   * Instalará perfeitamente todas as dezenas de dependências vitais de rede listadas no `requirements.txt` diretamente na sua máquina.
-   * Executará downloads internos de base em background para módulos dinâmicos (como o suporte de headless browsing do *Playwright*).
-5. Aguarde até ver a mensagem verde sinalizando: `"Installation Completed Successfully!"` (Pressione Enter para fechar caso pause).
+2. **Requisito Vital Universal (Python):** Baixe e instale localmente o **[Python 3.10 ou superior](https://www.python.org/downloads/)**. 
+   > 🔴 ***AVISO IMPRESCINDÍVEL:*** *Durante a instalação do executável nativo oficial do Python, VOCÊ DEVE MARCAR a checkmark quadrada "Add Python.exe to PATH" localizada ao rodapé do instalador antes de prosseguir. Se esquecer isso, nenhuma mágica preta em Command Lines funcionará e seu Windows não entenderá a base da ferramenta.*
+3. **Automação Batch de Implantação:** Dentro da raiz do repositório clonado localmente, aplique um duplo clique rápido sobre o arquivo construtor: **`install.bat`**.
+4. Ele fará todo o peso massivo do ecossistema silenciosamente: 
+   * Checará se o pip existe e forçará as atualizações globais em background.
+   * Compilará módulos e pacotes pesados como os navegadores Playwright Fantasmas (Headless), ferramentas matemáticas e bibliotecas de rotulação e DNS pura.
+5. Ao enxergar os dizeres verdes brilhantes `"Installation Completed Successfully!"`, feche a janela cmd finalizada. Seu equipamento tático está acoplado maravilhosamente bem.
+
+> *(Para peritos Old-School em infraestrutura C.L.I, basta iniciar o clássico: `pip install -r requirements.txt`)*
 
 ---
 
-## 💻 Como Iniciar e Usar
+## 💻 Interface Gráfica (Operação)
 
-Uma vez que a instalação esteja concluída, seu projeto está preparado.
+Diferente do mar cinzento cru e desmotivante dos terminais e scanners de mercado C.L.I legados, o Nexus Ultima conta com sua plataforma completa ancorada visualmente no **PySide6** renderizando folhas QSS Cyberpunk-Native. Seu painel se parece com o controle da missão de uma Red Team imersiva.
 
-Para abrir a interface gráfica do scanner principal, você deve invocar o arquivo `main.py` através do Prompt de Comando diretamente na pasta raiz do PentestGPT:
+Para soltar a Interface Visual Principal do PentestGPT, puxe do terminal a seguinte instrução vital sobre a respectiva raiz da pasta:
 
-#### Opção recomendada (Usando CMD):
 ```cmd
 python main.py
 ```
 
-### Usando a Ferramenta
-
-1. **Dashboard Inicial**: O programa exibirá o painel principal guiado (UI) de comandos e estátisticas no formato "Nexus".
-2. **Setup Rápido**: Insira no campo alvo sua "Target URL" (ex: `http://example.com`).
-3. **Modificadores Críticos**: 
-   * `Deep Scan`: Ativará o caçador Javascript e Fuzzing passivo.
-   * `Bypass Mode (Proxies)`: Encaminhará requisições usando o banco super otimizado testado do `ProxyManager`.
-   * *Nota*: O nível de *Strict Validation* de payloads e falsos HTTP 200 já operam por padrão na arquitetura (v20).
-4. Visualize os alertas vermelhos e verdes no centro da tela com extração contínua da Inteligência!
-
----
-
-## 🛠️ Tecnologias Principais e Bibliotecas
-
-*   **Front-end GUI:** `PySide6` (Poder do Qt re-imaginado para Python) + integração assíncrona com `qasync`.
-*   **Networking & Scrapers Massivos:** `aiohttp` (Motor principal do scanner), `Playwright`, `requests`, `cloudscraper`, `fake-useragent`, `nest_asyncio`.
-*   **Parsing e DNS Recon:** `BeautifulSoup4`, `dnspython`, `python-whois`, `tldextract`, `yarl`.
-*   **Segurança Ofensiva e Identificadores:** `PyRoxy` (Conexão e rotação de Proxies nativa customizada), `impacket` (Protocolos SMB e Auth), `wafw00f` (Bypass/Detecção de WAF).
+### Protocolo Tático na UI:
+O modus-operandi é instintivo e flui pelas regras de testes corporativos reais.
+1. **Ponto Cego & Definição Algorítimica:** Mire a barra sangrenta da `Target URL` para o seu inimigo contratado (Ex: `https://painel-falho.com`).
+2. **Calibração das Ogivas de Bypass (Ferramentas Laterais):**
+   * Preencha as Checkmarks do **Deep Scan** se quiser acoplar os bots caçadores javascript nas camadas cegas do DOM (Document Object Model).
+   * Assinale livremente todas as malhas avançadas do menu **BYPASS TOOLS** (IP Rotation Inteligente, Fuzzing Dom-Polling assíncrono, Smart Error Bypass para perfurar Códigos 403 e Obfuscador Avançado WAF).
+3. **AI Ignition:** Enfie a sua Chave de Combate do Groq no card designado do laboratório AI caso você precise desvendar anomalias obscuras que só o LLM possa codificar durante e em meio aos testes complexos rotacionais.
+4. **Fogo Livre:** Esmague o botão `[START RECON]` centralizado enquanto os LEDs indicativos varrem milhares de linhas log por segundo mapeando desastres. Extração purinha sendo cuspida no banco de texto da tela principal da sua suíte corporativa.
 
 ---
 
-## ⚠️ Disclaimer e Responsabilidade 
+## ⚠️ AVISO LEGAL CRÍTICO & RESPONSABILIDADES PÚBLICAS ⚠️
 
-**Esta ferramenta ("PentestGPT") é fabricada e liberada EXCLUSIVAMENTE para fins estritos educacionais, de pesquisa acadêmica, CTFs (*Capture The Flag*) profissionais e operações validadas de Red Team/Bug Bounty.**
+**LEIA ATENTAMENTE ESTE AVISO ANTES DE INICIALIZAR E RODAR A EXECUÇÃO ABSOLUTA DO ARQUIVO MAIN.PY.** Ignorá-lo o exporá incontestavelmente a litígios corporativos milionários e prisão federal irredutível garantida pela lei.
 
-O uso das funções expostas, *fuzzers* e métodos de bypass sem a permissão expressa, afirmativa e escrita por parte do host detentor dos servidores e aplicações web correspondentes (o Alvo) é absolutamente **ILEGAL** de acordo com leis cibernéticas ao redor do globo.
+1. **Propósito Exclusivo Documentado:** Este software monumental puramente metodológico (Nome-Código: "PentestGPT") é lançado e codificado **EXCLUSIVAMENTE** visando finalidades vitais para Pesquisas Acadêmicas formadoras, treinamento e conscientização computacional de laboratório fechado (*Capture The Flag* / CTFs), ou através de Suítes de Auditoria formalmente contratadas para Operações Cibernéticas Defensivas/Ofensivas Profissionais legalizadas (*Red Team* Governamental / Testes *Bug Bounty* em escopos limitados).
+2. **Uso Ilegal Inadmissível ("Crime Cibernético"):** Apontar os módulos de ataque da ferramenta, emular tentativas furtivas, burlar infraestrutura perimetral em nuvem alheia, envenenar roteadores através de HTTP Request Smuggling silencioso ou furar firewalls via payloads obfuscatórios contra **QUALQUER DOMÍNIO, IP E PLATAFORMA QUE NÃO LHE PERTENÇA, OU PARA A QUAL VOCÊ NÃO EXIBA FORMAL, CONTRATUAL ESCRITA E INEQUÍVOCA PERMISSÃO DA ORGANIZAÇÃO ALVO, É ABSOLUTAMENTE ILEGAL**. Acarreta-se neste aspecto, nas infrações diretas contra o código penal Internacional de cada fronteira (Como a rígida a CFAA - Computer Fraud and Abuse Act Americana, LGPD/GDPR - Privacidade das Instâncias da União Europeia - bem como o Artigo da Invasão de Dispositivos Computacionais Brasileiros).
+3. **Absolvição Perene e Vitalícia Clandestina de Culpabilidade:** O Código Criador Mestre Primário e Engenheiro Geral por de trás desta infraestrutura (`[moises vianna vanti]`), comungado integralmente também com **TODO** o compilado de eventuais coders e contribuidores terceiros atrelados ao repositório Open-Source **NÃO ASSUMEM E RENUNCIAM ABSOLUTAMENTE E PUBLICAMENTE A QUALQUER GRAU INDIVIDUAL DE RESPONSABILIDADE CÍVEL OU FINANCEIRA**, direta ou indireta, que possa derivar do porte impensado de seu código por agentes externos.
+4. **Ônus Unitário Intransferível do Operador / Prejuízos de Destruição (Bugs Loss):** Conceder Denial of Service acidental contra sistemas de rede de UTI (Causas Morte Práticas), explodir o painel da AWS destruindo tabelas essenciais SQL do Banco de Dados via Fuzzing Passivo Brutal acoplado, bem como todo processo bilionário compensatório advindo dessas causas tristes, **CORRERÃO SOB O ÔNUS FINANCEIRO COMPLETO, EXCLUSIVO, VITAL E INTEIRO DO USUÁRIO FINAL** ("Aquele que opera, clica e engendra atalhos de fogo" no momento local do Start Point cibernético) sob esta flag tática da referida suíte de caça e *hacking*.
 
-O desenvolvedor e os contribuidores por trás das manutenções tecnológicas ligadas a este repositório abstêm-se publicamente e legalmente de **QUALQUER** responsabilidade relativa a multas, mau uso, corrupção e perdas de dados alheios e danos causados pelo uso direto ou indireto advindo dessa estrutura.
+O domínio de ferramentas altamente predatórias na esfera global da tecnologia é uma armadura letal que exige controle imperativo ético em favor da moral e dos bons comportamentos.
 
-Sempre opere ética e legalmente de acordo com a premissa fundamental: *SEJA ÉTICO. OBTENHA AUTORIZAÇÃO CLARA PRIMEIRO*. 🛡️
+**Jamais crie vítimas tecnológicas indefesas em sua trajetória.**
+*Aja como uma espada de luz. Haja Protegidamente, eticamente. Peça sempre permissão explícita à rede em que voa.* 🛡️
 
 ---
 
 <div align="center">
-  <p>Construído e Arquitetado com ⚔️ por <b>[moises vianna vanti]</b></p>
+  <p>Escrito e lapidado a pulso no silêncio dos repositórios noturnos através das mãos por <b>[moises vianna vanti]</b>, sob toda as Leis e Éticas vigentes Modernas.</p>
 </div>
