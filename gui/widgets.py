@@ -299,6 +299,34 @@ class ProxyWidget(QFrame):
         info_ssl = QLabel("Forces HTTP downgrade attacks on internal links and API calls missing HSTS flags, exposing plain-text session tokens.")
         info_ssl.setWordWrap(True)
         info_ssl.setStyleSheet("color: #888; border: none; background: transparent; font-size: 9pt;")
+        
+        self.chk_waf_evasion = QCheckBox("ADVANCED WAF EVASION (PAYLOAD OBFUSCATION)")
+        self.chk_waf_evasion.setStyleSheet("font-size: 10pt; color: #ff2a2a; font-weight: bold;")
+
+        info_waf = QLabel("Mutates SQLi/XSS payloads using Hex encoding, Unicode escapes, and unexpected null bytes (%00) to bypass strict Firewalls like Cloudflare and AWS WAF.")
+        info_waf.setWordWrap(True)
+        info_waf.setStyleSheet("color: #888; border: none; background: transparent; font-size: 9pt;")
+
+        self.chk_req_smuggle = QCheckBox("HTTP REQUEST SMUGGLING (CL.TE / TE.CL)")
+        self.chk_req_smuggle.setStyleSheet("font-size: 10pt; color: #8a2be2; font-weight: bold;")
+
+        info_smuggle = QLabel("Injects desynchronized Content-Length and Transfer-Encoding headers to poison load balancers and access unauthenticated backend admin panels.")
+        info_smuggle.setWordWrap(True)
+        info_smuggle.setStyleSheet("color: #888; border: none; background: transparent; font-size: 9pt;")
+        
+        self.chk_error_bypass = QCheckBox("SMART ERROR BYPASS (401/403/500)")
+        self.chk_error_bypass.setStyleSheet("font-size: 10pt; color: #ff0055; font-weight: bold;")
+
+        info_error = QLabel("Automatically attempts to force access to forbidden or crashing endpoints by manipulating HTTP methods, path normalization (/%2e/), and spoofed internal headers upon receiving error codes.")
+        info_error.setWordWrap(True)
+        info_error.setStyleSheet("color: #888; border: none; background: transparent; font-size: 9pt;")
+
+        self.chk_payload_encode = QCheckBox("CONTEXT-AWARE PAYLOAD ENCODING")
+        self.chk_payload_encode.setStyleSheet("font-size: 10pt; color: #00ffcc; font-weight: bold;")
+
+        info_encode = QLabel("Sanitizes and dynamically encodes payloads (URL, Double URL, Base64, CharCode) to avoid breaking server parsers, ensuring only valid tokenized strings reach the final execution context.")
+        info_encode.setWordWrap(True)
+        info_encode.setStyleSheet("color: #888; border: none; background: transparent; font-size: 9pt;")
 
 
         layout.addWidget(title)
@@ -328,6 +356,18 @@ class ProxyWidget(QFrame):
         layout.addSpacing(10)
         layout.addWidget(self.chk_ssl_strip)
         layout.addWidget(info_ssl)
+        layout.addSpacing(10)
+        layout.addWidget(self.chk_waf_evasion)
+        layout.addWidget(info_waf)
+        layout.addSpacing(10)
+        layout.addWidget(self.chk_req_smuggle)
+        layout.addWidget(info_smuggle)
+        layout.addSpacing(10)
+        layout.addWidget(self.chk_error_bypass)
+        layout.addWidget(info_error)
+        layout.addSpacing(10)
+        layout.addWidget(self.chk_payload_encode)
+        layout.addWidget(info_encode)
         layout.addStretch()
 
 class ResultsTable(QTableWidget):
