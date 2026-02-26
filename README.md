@@ -39,8 +39,8 @@ A ferramenta foi projetada para ser iniciante ou *Plug-and-Play*. Criamos um **a
 
 1. Baixe os arquivos deste repositório ou clone usando o git localmente:
    ```cmd
-   git clone https://github.com/SEU-USUARIO/PentestGPT.git
-   cd PentestGPT
+   git clone https://github.com/moisesvvanti-dev/nexus-scanner.git
+   cd nexus-scanner
    ```
 2. Caso não o tenha, instale o **[Python 3.10 ou superior](https://www.python.org/downloads/)** e lembre-se de marcar a caixa de *"Add Python to PATH"* no instalador.
 3. Na pasta raiz, dê um duplo clique no arquivo **`install.bat`**.

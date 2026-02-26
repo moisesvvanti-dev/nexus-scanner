@@ -279,6 +279,28 @@ class ProxyWidget(QFrame):
         info_heur.setWordWrap(True)
         info_heur.setStyleSheet("color: #888; border: none; background: transparent; font-size: 9pt;")
 
+        self.chk_ip_rot = QCheckBox("SMART IP ROTATION (TOR/PROXY)")
+        self.chk_ip_rot.setStyleSheet("font-size: 10pt; color: #b825ff; font-weight: bold;")
+
+        info_ip = QLabel("Automatically routes traffic through a rotating proxy pool, changing IP addresses every 5 requests to melt IP-based rate limiting walls.")
+        info_ip.setWordWrap(True)
+        info_ip.setStyleSheet("color: #888; border: none; background: transparent; font-size: 9pt;")
+
+        self.chk_dom_poll = QCheckBox("ASYNC DOM POLLING (HEADLESS XSS)")
+        self.chk_dom_poll.setStyleSheet("font-size: 10pt; color: #00f3ff; font-weight: bold;")
+
+        info_dom = QLabel("Spawns headless browser workers to evaluate injected payloads in real-time. Crucial for catching delayed Blind/DOM-based XSS attacks.")
+        info_dom.setWordWrap(True)
+        info_dom.setStyleSheet("color: #888; border: none; background: transparent; font-size: 9pt;")
+
+        self.chk_ssl_strip = QCheckBox("SSL STRIPPING ABUSE")
+        self.chk_ssl_strip.setStyleSheet("font-size: 10pt; color: #ff9d00; font-weight: bold;")
+
+        info_ssl = QLabel("Forces HTTP downgrade attacks on internal links and API calls missing HSTS flags, exposing plain-text session tokens.")
+        info_ssl.setWordWrap(True)
+        info_ssl.setStyleSheet("color: #888; border: none; background: transparent; font-size: 9pt;")
+
+
         layout.addWidget(title)
         layout.addWidget(self.chk_bypass)
         layout.addWidget(info)
@@ -297,6 +319,15 @@ class ProxyWidget(QFrame):
         layout.addSpacing(10)
         layout.addWidget(self.chk_heuristic)
         layout.addWidget(info_heur)
+        layout.addSpacing(10)
+        layout.addWidget(self.chk_ip_rot)
+        layout.addWidget(info_ip)
+        layout.addSpacing(10)
+        layout.addWidget(self.chk_dom_poll)
+        layout.addWidget(info_dom)
+        layout.addSpacing(10)
+        layout.addWidget(self.chk_ssl_strip)
+        layout.addWidget(info_ssl)
         layout.addStretch()
 
 class ResultsTable(QTableWidget):
