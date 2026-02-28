@@ -319,7 +319,8 @@ class BrowserScanner(QObject):
             "recaptcha", "privacy_sandbox", "facebook", "analytics", "gtm",
             "typekit", "font-size", "deprecated", "autocomplete", "password field", 
             "form submission", "cookie", "samesite", "fbq", "content security policy",
-            "frame-ancestors", "violates the following"
+            "frame-ancestors", "violates the following", "refused to apply style",
+            "refused to execute script", "mime type"
         ]
         
         if any(n in text.lower() for n in noise):

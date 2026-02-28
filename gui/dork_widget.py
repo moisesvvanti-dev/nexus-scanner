@@ -642,7 +642,7 @@ class DorkWidget(QWidget):
                     "Connection": "keep-alive",
                     "Upgrade-Insecure-Requests": "1",
                 }
-                resp = requests.get(url, headers=headers, timeout=12, allow_redirects=True)
+                resp = requests.get(url, headers=headers, timeout=12, allow_redirects=True, verify=False)
                 body = resp.text
                 body_lower = body.lower()
 

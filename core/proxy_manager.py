@@ -54,7 +54,8 @@ class ProxyManager:
     async def refresh_proxies(self):
         """Scrapes new proxies from sources."""
         self.proxies = []
-        async with aiohttp.ClientSession() as session:
+        connector = aiohttp.TCPConnector(ssl=False)
+        async with aiohttp.ClientSession(connector=connector) as session:
             tasks = [self._fetch_source(session, src) for src in self.sources]
             results = await asyncio.gather(*tasks)
             

@@ -614,6 +614,8 @@ class ScriptLabWidget(QWidget):
         api_row.addWidget(self.combo_model)
         layout.addLayout(api_row)
 
+        self.target_url = ""
+
         # === TOP: Input Area (Audit Paste) ===
         lbl_input = QLabel("PASTE AUDIT / RECON DATA:")
         lbl_input.setStyleSheet("color: #00f3ff; font-weight: bold; font-size: 9pt; letter-spacing: 1px;")
@@ -794,6 +796,13 @@ class ScriptLabWidget(QWidget):
         """Set the AI assistant for script generation."""
         self.ai_assistant = ai_assistant
 
+    def set_target(self, url):
+        """Set the current target URL for masking."""
+        self.target_url = url
+        if self.ai_assistant:
+            self.ai_assistant.current_real_url = url
+            self.ai_assistant.current_masked_url = self.ai_assistant._mask_target(url)
+
     def _ensure_ai(self):
         """Create AI assistant from local key field if not set."""
         if not self.ai_assistant:
@@ -846,8 +855,12 @@ class ScriptLabWidget(QWidget):
                 result = future.result()
                 self.txt_output.setPlainText(result)
                 lines = result.count('\n') + 1
-                self.lbl_status.setText(f"✅ Script generated! ({len(result)} chars, {lines} lines)")
-                self.lbl_status.setStyleSheet("color: #00ff9d; font-size: 8pt;")
+                if "AI Refusal" in result:
+                    self.lbl_status.setText("❌ AI Refused (Safety Filter). Try 'Refine' or use a different model.")
+                    self.lbl_status.setStyleSheet("color: #ff5555; font-size: 8pt;")
+                else:
+                    self.lbl_status.setText(f"✅ Script generated! ({len(result)} chars, {lines} lines)")
+                    self.lbl_status.setStyleSheet("color: #00ff9d; font-size: 8pt;")
             except Exception as e:
                 self.txt_output.setPlainText(f"// Error: {str(e)}")
                 self.lbl_status.setText(f"❌ Generation failed: {str(e)}")
