@@ -169,7 +169,7 @@ class ProxyManager:
     def download(provider, proxy_type: ProxyType) -> set:
         proxes = set()
         with suppress(Exception):
-            data = requests.get(provider["url"], timeout=provider["timeout"]).text
+            data = requests.get(provider["url"], timeout=provider["timeout"], verify=False).text
             try:
                 for proxy in ProxyUtiles.parseAllIPPort(data.splitlines(), proxy_type):
                     proxes.add(proxy)

@@ -11,7 +11,8 @@ class SubdomainEnumerator:
         """Queries crt.sh to find subdomains."""
         url = f"https://crt.sh/?q=%25.{self.domain}&output=json"
         try:
-            async with aiohttp.ClientSession() as session:
+            connector = aiohttp.TCPConnector(ssl=False)
+            async with aiohttp.ClientSession(connector=connector) as session:
                 async with session.get(url, timeout=10) as response:
                     if response.status == 200:
                         data = await response.json()
@@ -34,7 +35,8 @@ class HackerTargetEnumerator:
         url = f"https://api.hackertarget.com/hostsearch/?q={self.domain}"
         subdomains = set()
         try:
-             async with aiohttp.ClientSession() as session:
+             connector = aiohttp.TCPConnector(ssl=False)
+             async with aiohttp.ClientSession(connector=connector) as session:
                 async with session.get(url, timeout=10) as response:
                     if response.status == 200:
                         text = await response.text()
@@ -56,7 +58,8 @@ class UberRecon:
         """Fetches in-scope domains from Uber's official Asset Recon API."""
         assets = []
         try:
-            async with aiohttp.ClientSession() as session:
+            connector = aiohttp.TCPConnector(ssl=False)
+            async with aiohttp.ClientSession(connector=connector) as session:
                 url = f"{self.api_url}?offset=0&limit={limit}"
                 async with session.get(url, timeout=10) as response:
                     if response.status == 200:
@@ -93,7 +96,8 @@ class CloudBucketEnumerator:
     async def run(self):
         """Checks for open cloud buckets (AWS, Azure, GCP)."""
         results = []
-        async with aiohttp.ClientSession() as session:
+        connector = aiohttp.TCPConnector(ssl=False)
+        async with aiohttp.ClientSession(connector=connector) as session:
             for name in self.permutations:
                 # AWS S3
                 s3_url = f"http://{name}.s3.amazonaws.com"
@@ -150,7 +154,8 @@ class TakeoverDetector:
         """Uses Google DNS API to fetch CNAME (No local deps)."""
         url = f"https://dns.google/resolve?name={domain}&type=CNAME"
         try:
-            async with aiohttp.ClientSession() as session:
+            connector = aiohttp.TCPConnector(ssl=False)
+            async with aiohttp.ClientSession(connector=connector) as session:
                 async with session.get(url, timeout=5) as r:
                     if r.status == 200:
                         data = await r.json()

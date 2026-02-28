@@ -21,6 +21,7 @@ try:
     from .downloader import DownloaderWidget
     from .dork_widget import DorkWidget
     from .network_widget import NetworkAnalyzerWidget
+    from .supabase_widget import SupabaseWidget
     # from .ddos_widget import MHDDoSWidget # Lazy loaded
 except ImportError:
     from gui.styles import MAIN_STYLE, LOG_STYLE
@@ -34,6 +35,7 @@ except ImportError:
     from gui.downloader import DownloaderWidget # Import Downloader
     from gui.dork_widget import DorkWidget
     from gui.network_widget import NetworkAnalyzerWidget
+    from gui.supabase_widget import SupabaseWidget
     # from gui.ddos_widget import MHDDoSWidget # Lazy loaded
 
 class MainWindow(QMainWindow):
@@ -87,6 +89,7 @@ class MainWindow(QMainWindow):
         self.btn_nav_dorks = self.create_nav_button("DORK ANALYSIS", 7)
         self.btn_nav_ddos = self.create_nav_button("ATTACK PANEL", 8)
         self.btn_nav_network = self.create_nav_button("NETWORK & DB ANALYZER", 9)
+        self.btn_nav_supabase = self.create_nav_button("SUPABASE EXPLOITATION", 10)
         
         sidebar_layout.addWidget(self.btn_nav_dashboard)
         sidebar_layout.addWidget(self.btn_nav_scan)
@@ -98,6 +101,7 @@ class MainWindow(QMainWindow):
         sidebar_layout.addWidget(self.btn_nav_dorks)
         sidebar_layout.addWidget(self.btn_nav_ddos)
         sidebar_layout.addWidget(self.btn_nav_network)
+        sidebar_layout.addWidget(self.btn_nav_supabase)
         sidebar_layout.addStretch()
         
         # Version Info
@@ -151,6 +155,10 @@ class MainWindow(QMainWindow):
         # Page 9: Network Analyzer
         self.page_network = self.create_network_page()
         self.content_stack.addWidget(self.page_network)
+        
+        # Page 10: Supabase Exploitation
+        self.page_supabase = self.create_supabase_page()
+        self.content_stack.addWidget(self.page_supabase)
         
         # Default Page
         self.btn_nav_dashboard.setChecked(True)
@@ -787,3 +795,7 @@ class MainWindow(QMainWindow):
     def create_network_page(self):
         self.network_widget = NetworkAnalyzerWidget()
         return self.network_widget
+
+    def create_supabase_page(self):
+        self.supabase_widget = SupabaseWidget()
+        return self.supabase_widget

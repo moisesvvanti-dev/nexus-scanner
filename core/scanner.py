@@ -1334,7 +1334,8 @@ class NexusScanner(QObject):
                 self.log_message.emit("<span style='color:#00f3ff'>[*] Initializing Proxychains (Free Proxy Rotation)...</span>")
                 await self.proxy_manager.initialize()
                 
-            self.session = aiohttp.ClientSession(read_bufsize=65536)
+            connector = aiohttp.TCPConnector(ssl=False)
+            self.session = aiohttp.ClientSession(connector=connector, read_bufsize=65536)
             
             self.log_message.emit("<h3 style='color:#00ff9d'>[*] INITIALIZING NEXUS V20 CORE...</h3>")
             self.log_message.emit(f"[*] Engine: Asyncio + Semaphore(50) | Bypass Mode: {self.bypass_mode}")

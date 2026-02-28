@@ -18,8 +18,8 @@ tldextract>=5.1.0
 yarl>=1.9.4
 
 # Offensive Identifiers (Optional/Specific Tooling Bridges if needed by Core)
-# wafw00f>=2.2.0
-# impacket>=0.11.0
+wafw00f>=2.2.0
+impacket>=0.11.0
 
 # PyRoxy - Proxy Management Local Instance
 # (Can be fetched via git, or handled natively if the src code is embedded)
