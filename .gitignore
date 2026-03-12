@@ -1,0 +1,4 @@
+key.txt
+logs/
+.venv/
+__pycache__/

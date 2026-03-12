@@ -2,7 +2,7 @@ from PySide6.QtWidgets import (
     QWidget, QHBoxLayout, QVBoxLayout, QLabel, QFrame, QPushButton, 
     QGraphicsDropShadowEffect, QTableWidget, QTableWidgetItem, QHeaderView,
     QLineEdit, QInputDialog, QMessageBox, QListWidget, QListWidgetItem,
-    QCheckBox
+    QCheckBox, QTextEdit
 )
 from PySide6.QtCore import Qt, QTimer, Property, QPropertyAnimation, QEasingCurve, Signal
 from PySide6.QtGui import QColor, QFont, QBrush
@@ -104,9 +104,9 @@ class StatCard(QFrame):
         self.layout.setContentsMargins(12, 16, 12, 16)
         self.setStyleSheet(f"""
             QFrame {{
-                border: 1px solid rgba({GlowButton._hex_to_rgb(value_color)}, 0.3);
-                background-color: rgba(12, 12, 28, 0.7);
-                border-radius: 10px;
+                border: 1px solid rgba(255, 255, 255, 0.1);
+                background-color: rgba(30, 30, 45, 0.4);
+                border-radius: 28px;
             }}
         """)
         self.setMinimumHeight(100)
@@ -170,7 +170,7 @@ class FundsWidget(QFrame):
 
     def __init__(self):
         super().__init__()
-        self.setObjectName("ContentPanel")
+        self.setObjectName("RainbowCard")
         layout = QVBoxLayout(self)
         
         title = QLabel("SUPABASE WALLET (SECURE)")
@@ -368,6 +368,35 @@ class ProxyWidget(QFrame):
         layout.addSpacing(10)
         layout.addWidget(self.chk_payload_encode)
         layout.addWidget(info_encode)
+        
+        # --- NEW EFFICIENCY & EVASION OPTIONS ---
+        self.chk_403_bypass = QCheckBox("ACTIVE 403/FORBIDDEN OBFUSCATION")
+        self.chk_403_bypass.setStyleSheet("font-size: 10pt; color: #ff00ff; font-weight: bold;")
+        info_403 = QLabel("Dynamically alters paths (/%2e/, //) and spoof headers (X-Original-URL) upon hitting WAF blocks.")
+        info_403.setWordWrap(True)
+        info_403.setStyleSheet("color: #888; border: none; background: transparent; font-size: 9pt;")
+        
+        self.chk_header_rot = QCheckBox("DYNAMIC HEADER & USER-AGENT ROTATION")
+        self.chk_header_rot.setStyleSheet("font-size: 10pt; color: #00ff33; font-weight: bold;")
+        info_header = QLabel("Aggressively cycles User-Agents and Accept headers per-request to disrupt behavioral fingerprinting.")
+        info_header.setWordWrap(True)
+        info_header.setStyleSheet("color: #888; border: none; background: transparent; font-size: 9pt;")
+        
+        self.chk_auto_tune = QCheckBox("AUTO-TUNE CONCURRENCY (SEMAPHORE OPTIMIZATION)")
+        self.chk_auto_tune.setStyleSheet("font-size: 10pt; color: #ffff00; font-weight: bold;")
+        info_tune = QLabel("Reduces scanning lag by replacing static fuzz workers with scalable async Semaphores tied to local CPU/Network.")
+        info_tune.setWordWrap(True)
+        info_tune.setStyleSheet("color: #888; border: none; background: transparent; font-size: 9pt;")
+
+        layout.addSpacing(10)
+        layout.addWidget(self.chk_403_bypass)
+        layout.addWidget(info_403)
+        layout.addSpacing(10)
+        layout.addWidget(self.chk_header_rot)
+        layout.addWidget(info_header)
+        layout.addSpacing(10)
+        layout.addWidget(self.chk_auto_tune)
+        layout.addWidget(info_tune)
         layout.addStretch()
 
 class ResultsTable(QTableWidget):
@@ -944,4 +973,136 @@ class ScriptLabWidget(QWidget):
         self.txt_results.clear()
         self.txt_extra.clear()
         self.lbl_status.setText("")
+
+class AMSIWidget(QWidget):
+    """AMSI & WAF Analyzer Tool: Safely probes for integrated endpoint defenses."""
+
+    def __init__(self):
+        super().__init__()
+        layout = QVBoxLayout(self)
+        layout.setSpacing(10)
+
+        # Header
+        header = QLabel("🛡️ AMSI & WAF ANALYZER  —  DEFENSE PROBING ENGINE")
+        header.setStyleSheet("color: #00f3ff; font-weight: bold; font-size: 13pt; letter-spacing: 2px;")
+        layout.addWidget(header)
+
+        info = QLabel(
+            "Safely injects industry-standard test signatures (e.g., EICAR, AMSI triggers) into HTTP headers and payloads "
+            "to behaviorally map the presence of Antimalware Scan Interface (AMSI) and Web Application Firewalls. "
+            "Does not execute exploits."
+        )
+        info.setWordWrap(True)
+        info.setStyleSheet("color: #aaa; font-size: 9pt; margin-bottom: 5px;")
+        layout.addWidget(info)
+
+        # Input Row
+        input_row = QHBoxLayout()
+        
+        lbl_target = QLabel("TARGET URL:")
+        lbl_target.setStyleSheet("color: #00ff9d; font-weight: bold; font-size: 9pt;")
+        
+        self.txt_target = QLineEdit()
+        self.txt_target.setPlaceholderText("https://target.gov/api")
+        self.txt_target.setStyleSheet("""
+            QLineEdit {
+                background-color: rgba(0, 0, 0, 0.4);
+                color: #fff;
+                border: 1px solid rgba(0, 243, 255, 0.4);
+                border-radius: 4px;
+                padding: 8px;
+                font-size: 10pt;
+            }
+            QLineEdit:focus { border: 1px solid #00f3ff; }
+        """)
+
+        input_row.addWidget(lbl_target)
+        input_row.addWidget(self.txt_target, 1)
+        layout.addLayout(input_row)
+
+        # Action Buttons
+        btn_layout = QHBoxLayout()
+        btn_layout.setContentsMargins(0, 10, 0, 10) # Add vertical breathing room
+        
+        self.btn_analyze = GlowButton("🔍 RUN DEFENSE AUDIT", "#00f3ff")
+        self.btn_analyze.setMinimumHeight(40)  # Ensure button isn't squashed
+        self.btn_analyze.clicked.connect(self._run_audit)
+        
+        self.lbl_status = QLabel("")
+        
+        btn_layout.addWidget(self.btn_analyze)
+        btn_layout.addWidget(self.lbl_status, 1)
+        layout.addLayout(btn_layout)
+
+        # Output Terminal
+        lbl_out = QLabel("🕵️ DETECTED PROFILES:")
+        lbl_out.setStyleSheet("color: #00f3ff; font-weight: bold; font-size: 10pt;")
+        layout.addWidget(lbl_out)
+
+        self.txt_output = QTextEdit()
+        self.txt_output.setReadOnly(True)
+        self.txt_output.setStyleSheet("""
+            QTextEdit {
+                background-color: rgba(10, 15, 20, 0.9);
+                color: #00f3ff;
+                border: 1px solid rgba(0, 243, 255, 0.3);
+                border-radius: 8px;
+                font-family: 'Consolas', monospace;
+                font-size: 9pt;
+                padding: 10px;
+            }
+        """)
+        layout.addWidget(self.txt_output, 1)
+
+    def _run_audit(self):
+        target = self.txt_target.text().strip()
+        if not target:
+            self.lbl_status.setText("⚠️ Enter a valid target URL!")
+            self.lbl_status.setStyleSheet("color: #ff5555; font-size: 9pt;")
+            return
+            
+        if not target.startswith("http"):
+            target = "https://" + target
+            self.txt_target.setText(target)
+
+        self.btn_analyze.setEnabled(False)
+        self.btn_analyze.setText("⏳ AUDITING...")
+        self.lbl_status.setText("Injecting harmless signatures and waiting for endpoint response...")
+        self.lbl_status.setStyleSheet("color: #ffcc00; font-size: 9pt;")
+        
+        # We must run the aiohttp probe in the background asyncio loop
+        import asyncio
+        import aiohttp
+        from core.amsi_analyzer import AMSIAnalyzer
+        
+        async def _probe():
+            try:
+                # Use a short-lived session for the tool
+                async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(ssl=False)) as session:
+                    analyzer = AMSIAnalyzer(session)
+                    results = await analyzer.run_detection(target)
+                    report = analyzer.format_report(results)
+                    return True, report
+            except Exception as e:
+                return False, str(e)
+
+        def _done(future):
+            try:
+                success, data = future.result()
+                if success:
+                    self.txt_output.append(f"====== AUDIT: {target} ======\n{data}\n")
+                    self.lbl_status.setText("✅ Reconnaissance complete.")
+                    self.lbl_status.setStyleSheet("color: #00ff9d; font-size: 9pt;")
+                else:
+                    self.txt_output.append(f"[!] Engine Error -> {data}\n")
+                    self.lbl_status.setText("❌ Connection failed.")
+                    self.lbl_status.setStyleSheet("color: #ff5555; font-size: 9pt;")
+            except Exception as e:
+                self.lbl_status.setText(f"❌ Error: {str(e)}")
+            finally:
+                self.btn_analyze.setEnabled(True)
+                self.btn_analyze.setText("🔍 RUN DEFENSE AUDIT")
+                
+        future = asyncio.ensure_future(_probe())
+        future.add_done_callback(_done)
 

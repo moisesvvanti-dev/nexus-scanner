@@ -620,143 +620,194 @@ class DorkWidget(QWidget):
                 query = query.replace("{target}", target.replace("https://", "").replace("http://", "").split('/')[0])
                 dorks.append((row, query))
 
+        # Get AI Key to pass down to the browser for Audio CAPTCHA bypass
+        ai_key = self.txt_groq_key.text().strip() if hasattr(self, 'txt_groq_key') else None
+
         # Run in background thread
-        thread = threading.Thread(target=self._analyze_worker, args=(dorks,), daemon=True)
+        thread = threading.Thread(target=self._analyze_worker, args=(dorks, ai_key), daemon=True)
         thread.start()
 
-    def _analyze_worker(self, dorks):
-        """Background thread: queries Google for each dork and deeply parses the results page."""
-        hits = 0
-        for i, (row, query) in enumerate(dorks):
-            if self._stop_analysis:
-                break
+    def _analyze_worker(self, dorks, ai_key=None):
+        """Background thread: queries Google for each dork using Stealth BrowserScanner to evade CAPTCHAs."""
+        import asyncio
+        from core.browser_scanner import BrowserScanner, HAS_PLAYWRIGHT, HAS_PYPPETEER
+        
+        async def run_stealth_analysis():
+            hits = 0
+            
+            if not HAS_PLAYWRIGHT and not HAS_PYPPETEER:
+                self._log_message.emit("<span style='color:#ff0000'>[!] Playwright/Pyppeteer missing. Cannot run Apex Google Engine. Install playwright down the line.</span>")
+                self._analysis_done.emit()
+                return
+
+            self._log_message.emit("<span style='color:#00f3ff'>[*] Initializing Google Apex Engine (Stealth Browser) ...</span>")
+            
+            # Spin up the stealth browser scanner instance (headless) with the AI Key
+            scanner = BrowserScanner("https://www.google.com", headless=True, ai_key=ai_key)
+            await scanner.initialize()
+            
+            if not scanner.page:
+                self._log_message.emit("<span style='color:#ff0000'>[!] Failed to initialize browser.</span>")
+                self._analysis_done.emit()
+                return
 
             try:
-                url = f"https://www.google.com/search?q={urllib.parse.quote(query)}&num=10&hl=en"
-                headers = {
-                    "User-Agent": random.choice(_USER_AGENTS),
-                    "Accept-Language": "en-US,en;q=0.9",
-                    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-                    "Referer": "https://www.google.com/",
-                    "DNT": "1",
-                    "Connection": "keep-alive",
-                    "Upgrade-Insecure-Requests": "1",
-                }
-                resp = requests.get(url, headers=headers, timeout=12, allow_redirects=True, verify=False)
-                body = resp.text
-                body_lower = body.lower()
+                # Use organic rotation ONCE at the start of the session
+                await scanner._rotate_identity()
+                
+                # Accept initial cookies just in case Google asks
+                await scanner.page.goto("https://www.google.com", wait_until="domcontentloaded", timeout=30000)
+                await scanner._attempt_captcha_solve()
+                
+                for i, (row, query) in enumerate(dorks):
+                    if self._stop_analysis:
+                        break
 
-                # ─── 1. Check for CAPTCHA / block ───
-                captcha_indicators = [
-                    "unusual traffic",
-                    "captcha",
-                    "our systems have detected",
-                    "/sorry/index",
-                    "recaptcha",
-                    "are not a robot",
-                ]
-                if any(ind in body_lower for ind in captcha_indicators):
-                    self._analysis_result.emit(row, "⚠️ CAPTCHA", "#ff9d00")
-                    self._log_message.emit(f'<span style="color:#ff9d00">[⚠️ CAPTCHA] Google blocked request for: {query[:60]}... — waiting 15-30s</span>')
-                    time.sleep(random.uniform(15, 30))
-                    continue
-
-                # ─── 2. Check for explicit NO RESULTS ───
-                no_results_indicators = [
-                    "did not match any documents",
-                    "nenhum documento foi encontrado",
-                    "no results found",
-                    "nenhum resultado encontrado",
-                    "did not match any document",
-                    "your search did not match",
-                    "não corresponde a nenhum",
-                ]
-                is_no_result = any(ind in body_lower for ind in no_results_indicators)
-
-                if is_no_result:
-                    self._analysis_result.emit(row, "❌ 0 results", "#555")
-                    self._log_message.emit(f'<span style="color:#555">[❌ NO RESULTS] {query[:80]}</span>')
-                    self._analysis_progress.emit(i + 1, len(dorks))
-                    time.sleep(random.uniform(2.0, 4.5))
-                    continue
-
-                # ─── 3. Extract "About X results" count from Google ───
-                result_count = 0
-                count_match = re.search(
-                    r'(?:about|approximately|cerca de)?\s*([\d,.\s]+)\s*(?:results|resultados|résultats)',
-                    body_lower
-                )
-                if count_match:
-                    count_str = count_match.group(1).replace(",", "").replace(".", "").replace(" ", "").strip()
                     try:
-                        result_count = int(count_str)
-                    except ValueError:
-                        result_count = 0
+                        url = f"https://www.google.com/search?q={urllib.parse.quote(query)}&num=10&hl=en"
+                        
+                        self._log_message.emit(f"<span style='color:#555'>[Stealth] Querying: {query[:50]}...</span>")
+                        
+                        # Navigate
+                        if HAS_PLAYWRIGHT:
+                            response = await scanner.page.goto(url, wait_until="domcontentloaded", timeout=45000)
+                        else:
+                            response = await scanner.page.goto(url, waitUntil="domcontentloaded", timeout=45000)
+                            
+                        # If CAPTCHA is hit, the internal interceptor will attempt to solve it
+                        await scanner._attempt_captcha_solve()
+                        
+                        # Give it a second to render
+                        if HAS_PLAYWRIGHT:
+                            await scanner.page.wait_for_timeout(2000)
+                        else:
+                            await scanner.page.waitForTimeout(2000)
+                            
+                        body = await scanner.page.content()
+                        body_lower = body.lower()
 
-                # ─── 4. Count REAL result links in the page ───
-                # Google wraps results in <a href="/url?q=..." or <a href="https://..."
-                # We look for links that point to external sites (not google.com itself)
-                real_links = re.findall(
-                    r'<a\s+href="(?:/url\?q=)?(https?://[^"]+)"',
-                    body
-                )
-                # Filter out Google internal links
-                external_links = [
-                    link for link in real_links
-                    if not any(g in link for g in [
-                        'google.com', 'google.com.br', 'gstatic.com',
-                        'googleapis.com', 'youtube.com', 'accounts.google',
-                        'support.google', 'policies.google', 'maps.google',
-                        'webcache.googleusercontent'
-                    ])
-                ]
-                num_real_links = len(external_links)
+                        # ─── 1. Check for CAPTCHA / block ───
+                        captcha_indicators = [
+                            "unusual traffic",
+                            "our systems have detected",
+                            "/sorry/index",
+                            "recaptcha",
+                        ]
+                        
+                        if any(ind in body_lower for ind in captcha_indicators):
+                            # Debug dump the DOM so we can figure out why the bot didn't solve it
+                            dump_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "logs", "captcha_dump.html")
+                            os.makedirs(os.path.dirname(dump_path), exist_ok=True)
+                            with open(dump_path, "w", encoding="utf-8") as f:
+                                # We remove the javascript so it doesn't execute when viewing, just structural html
+                                f.write(body.replace("<script", "<noscript_dbg").replace("</script>", "</noscript_dbg>"))
+                                
+                            self._analysis_result.emit(row, "⚠️ CAPTCHA", "#ff9d00")
+                            self._log_message.emit(f'<span style="color:#ff9d00">[⚠️ CAPTCHA] Google blocked request for: {query[:60]}... — Unsolved by Auto-Bot</span>')
+                            # Rotate hard and wait
+                            await scanner.stop()
+                            await asyncio.sleep(random.uniform(5, 10))
+                            await scanner.initialize()
+                            await scanner._rotate_identity()
+                            continue
 
-                # ─── 5. Also check for result snippet divs ───
-                # Google wraps result descriptions in specific class patterns
-                snippet_count = len(re.findall(r'class="[^"]*(?:VwiC3b|IsZvec|BNeawe|s3v9rd)[^"]*"', body))
+                        # ─── 2. Evaluate DOM using Browser Logic instead of Regex ───
+                        try:
+                            # Use JS injection to parse the results safely
+                            results_data = await scanner.page.evaluate('''() => {
+                                // 2. Check for explicit NO RESULTS
+                                const bodyText = document.body.innerText.toLowerCase();
+                                const noResultsIndicators = [
+                                    "did not match any documents",
+                                    "nenhum documento foi encontrado",
+                                    "no results found",
+                                    "nenhum resultado encontrado",
+                                    "did not match any document",
+                                    "your search did not match"
+                                ];
+                                const isNoResult = noResultsIndicators.some(ind => bodyText.includes(ind));
+                                
+                                if (isNoResult) return { type: 'empty' };
+                                
+                                // 3. Extract "About X results" count from Google id='result-stats'
+                                let resultCount = 0;
+                                const statsEl = document.getElementById("result-stats");
+                                if (statsEl) {
+                                    const match = statsEl.innerText.match(/([\\d,\\.\\s]+)\\s*(?:results|resultados|résultats)/);
+                                    if(match) resultCount = parseInt(match[1].replace(/[,\\.\\s]/g, '')) || 0;
+                                }
+                                
+                                // 4. Count REAL result links (href starts with http, not google)
+                                const links = Array.from(document.querySelectorAll('#search a')).map(a => a.href);
+                                const realLinks = links.filter(l => l.startsWith('http') && !l.includes('google.com') && !l.includes('youtube.com'));
+                                
+                                // 5. Count snippets
+                                const snippetCount = document.querySelectorAll('.VwiC3b, .IsZvec').length;
+                                
+                                return {
+                                    type: 'success',
+                                    result_count: resultCount,
+                                    num_real_links: realLinks.length,
+                                    snippet_count: snippetCount
+                                };
+                            }''')
+                        except Exception as e:
+                            self._log_message.emit(f"<span style='color:#ff5555'>[!] DOM Parse error: {e}</span>")
+                            results_data = None
 
-                # ─── 6. Final verdict ───
-                if num_real_links >= 1 or snippet_count >= 1:
-                    # Real results found
-                    if result_count > 0:
-                        count_display = f"{result_count:,}" if result_count < 1000000 else f"{result_count/1000000:.1f}M"
-                        self._analysis_result.emit(row, f"✅ {count_display} hits", "#00ff9d")
-                    else:
-                        self._analysis_result.emit(row, f"✅ {num_real_links} links", "#00ff9d")
-                    hits += 1
-                    self._log_message.emit(
-                        f'<span style="color:#00ff9d">[✅ HIT] {query[:70]}  →  '
-                        f'{num_real_links} links, {snippet_count} snippets, ~{result_count} results</span>'
-                    )
-                elif result_count > 0:
-                    # Google says results exist but we couldn't parse links
-                    count_display = f"{result_count:,}" if result_count < 1000000 else f"{result_count/1000000:.1f}M"
-                    self._analysis_result.emit(row, f"🔶 ~{count_display}", "#ff9d00")
-                    hits += 1
-                    self._log_message.emit(
-                        f'<span style="color:#ff9d00">[🔶 POSSIBLE] {query[:70]}  →  ~{result_count} results (links not parsed)</span>'
-                    )
-                else:
-                    # Nothing found at all
-                    self._analysis_result.emit(row, "❌ 0 results", "#555")
-                    self._log_message.emit(f'<span style="color:#555">[❌ EMPTY] {query[:80]}</span>')
+                        if not results_data:
+                            self._analysis_result.emit(row, "⚠️ DOM ERR", "#ff9d00")
+                            continue
+                            
+                        if results_data.get('type') == 'empty':
+                            self._analysis_result.emit(row, "❌ 0 results", "#555")
+                            self._log_message.emit(f'<span style="color:#555">[❌ EMPTY] {query[:80]}</span>')
+                            
+                        elif results_data.get('type') == 'success':
+                            res_count = results_data.get('result_count', 0)
+                            num_links = results_data.get('num_real_links', 0)
+                            snip_count = results_data.get('snippet_count', 0)
+                            
+                            if num_links >= 1 or snip_count >= 1:
+                                if res_count > 0:
+                                    count_display = f"{res_count:,}" if res_count < 1000000 else f"{res_count/1000000:.1f}M"
+                                    self._analysis_result.emit(row, f"✅ {count_display} hits", "#00ff9d")
+                                else:
+                                    self._analysis_result.emit(row, f"✅ {num_links} links", "#00ff9d")
+                                hits += 1
+                                self._log_message.emit(
+                                    f'<span style="color:#00ff9d">[✅ HIT] {query[:70]}  →  '
+                                    f'{num_links} links, {snip_count} snippets, ~{res_count} results</span>'
+                                )
+                            elif res_count > 0:
+                                count_display = f"{res_count:,}" if res_count < 1000000 else f"{res_count/1000000:.1f}M"
+                                self._analysis_result.emit(row, f"🔶 ~{count_display}", "#ff9d00")
+                                hits += 1
+                                self._log_message.emit(
+                                    f'<span style="color:#ff9d00">[🔶 POSSIBLE] {query[:70]}  →  ~{res_count} results (links not parsed)</span>'
+                                )
+                            else:
+                                self._analysis_result.emit(row, "❌ 0 results", "#555")
+                                self._log_message.emit(f'<span style="color:#555">[❌ EMPTY] {query[:80]}</span>')
 
-            except requests.exceptions.Timeout:
-                self._analysis_result.emit(row, "⏳ TIMEOUT", "#ff9d00")
-                self._log_message.emit(f'<span style="color:#ff9d00">[⏳ TIMEOUT] {query[:70]}</span>')
-            except requests.exceptions.ConnectionError:
-                self._analysis_result.emit(row, "🔌 CONN ERR", "#ff5555")
-                self._log_message.emit(f'<span style="color:#ff5555">[🔌 CONNECTION ERROR] {query[:70]}</span>')
-            except Exception as e:
-                self._analysis_result.emit(row, "⚠️ ERR", "#ff5555")
-                self._log_message.emit(f'<span style="color:#ff5555">[⚠️ ERROR] {query[:60]} — {str(e)[:40]}</span>')
+                    except Exception as e:
+                        if "Crash" in str(e) or "closed" in str(e):
+                             self._log_message.emit(f'<span style="color:#ff5555">[🔌 BROWSER CRASH] Restarting engine...</span>')
+                             await scanner.stop()
+                             await scanner.initialize()
+                        self._analysis_result.emit(row, "⚠️ ERR", "#ff5555")
+                        self._log_message.emit(f'<span style="color:#ff5555">[⚠️ ERROR] {query[:60]} — {str(e)[:40]}</span>')
 
-            self._analysis_progress.emit(i + 1, len(dorks))
-            # Random delay to avoid Google ban
-            time.sleep(random.uniform(3.0, 6.0))
+                    self._analysis_progress.emit(i + 1, len(dorks))
+                    # Still need a small delay, but much less than raw requests
+                    await asyncio.sleep(random.uniform(1.5, 3.5))
 
-        self._analysis_done.emit()
+            finally:
+                await scanner.stop()
+                self._analysis_done.emit()
+
+        # Run the async crawler inside this standard daemon thread
+        asyncio.run(run_stealth_analysis())
 
     # ═══════ SIGNAL HANDLERS (thread-safe UI updates) ═══════
     def _count_hits(self):

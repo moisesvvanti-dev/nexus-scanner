@@ -4,38 +4,49 @@ import re
 from PySide6.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QPushButton, 
     QTextEdit, QProgressBar, QLabel, QHBoxLayout, QMessageBox, QFileDialog, QCheckBox,
-    QStackedWidget, QFrame, QSizePolicy, QLineEdit, QApplication, QGraphicsDropShadowEffect
+    QStackedWidget, QFrame, QSizePolicy, QLineEdit, QApplication, QGraphicsDropShadowEffect,
+    QComboBox
 )
-from PySide6.QtCore import Slot, Qt, QSize
+from PySide6.QtCore import Slot, Qt, QSize, QTimer
 from PySide6.QtGui import QIcon, QAction, QColor
 
 try:
     from .styles import MAIN_STYLE, LOG_STYLE
     from .widgets import (
         ResultsTable, DashboardStats, GlowButton, 
-        FundsWidget, SensitiveDataWidget, ProxyWidget, PayloadsWidget, ScriptLabWidget
+        FundsWidget, SensitiveDataWidget, ProxyWidget, PayloadsWidget, ScriptLabWidget, AMSIWidget
     )
     from core.scanner import NexusScanner
     from core.reporter import ReportGenerator
     from core.integrations import SupabaseHandler
+    from core.firebase_reporter import FirebaseReporter
     from .downloader import DownloaderWidget
     from .dork_widget import DorkWidget
     from .network_widget import NetworkAnalyzerWidget
     from .supabase_widget import SupabaseWidget
+    from .mirror_widget import MirrorWidget
+    from .sqlmap_widget import SqlMapWidget
+    from .port_scan_widget import PortScanWidget
+    from .xss_scan_widget import XssScanWidget
     # from .ddos_widget import MHDDoSWidget # Lazy loaded
 except ImportError:
     from gui.styles import MAIN_STYLE, LOG_STYLE
     from gui.widgets import (
         ResultsTable, DashboardStats, GlowButton, 
-        FundsWidget, SensitiveDataWidget, ProxyWidget, PayloadsWidget, ScriptLabWidget
+        FundsWidget, SensitiveDataWidget, ProxyWidget, PayloadsWidget, ScriptLabWidget, AMSIWidget
     )
     from core.scanner import NexusScanner
     from core.reporter import ReportGenerator
     from core.integrations import SupabaseHandler
+    from core.firebase_reporter import FirebaseReporter
     from gui.downloader import DownloaderWidget # Import Downloader
     from gui.dork_widget import DorkWidget
     from gui.network_widget import NetworkAnalyzerWidget
     from gui.supabase_widget import SupabaseWidget
+    from gui.mirror_widget import MirrorWidget
+    from gui.sqlmap_widget import SqlMapWidget
+    from gui.port_scan_widget import PortScanWidget
+    from gui.xss_scan_widget import XssScanWidget
     # from gui.ddos_widget import MHDDoSWidget # Lazy loaded
 
 class MainWindow(QMainWindow):
@@ -44,6 +55,13 @@ class MainWindow(QMainWindow):
         self.targets = targets 
         self.scanner = None
         self.all_findings = []
+        
+        # Initialize Firebase Reporter later when needed (Settings based)
+        self.firebase = None
+        self.scan_timer = QTimer(self)
+        self.scan_elapsed = 0
+        self.scan_timer.timeout.connect(self._update_timer)
+
         self.init_ui()
 
     def init_ui(self):
@@ -55,8 +73,8 @@ class MainWindow(QMainWindow):
         main_widget = QWidget()
         self.setCentralWidget(main_widget)
         main_layout = QHBoxLayout(main_widget)
-        main_layout.setContentsMargins(0, 0, 0, 0)
-        main_layout.setSpacing(0)
+        main_layout.setContentsMargins(20, 20, 20, 20)
+        main_layout.setSpacing(20)
 
         # --- SIDEBAR ---
         self.sidebar = QWidget()
@@ -67,29 +85,28 @@ class MainWindow(QMainWindow):
         sidebar_layout.setSpacing(10)
 
         # Header in Sidebar
-        header = QLabel("⬡ NEXUS")
+        header = QLabel("NEXUS")
         header.setAlignment(Qt.AlignCenter)
-        header.setStyleSheet("font-family: 'Consolas'; font-size: 24pt; font-weight: bold; color: #00f3ff; letter-spacing: 4px;")
+        header.setStyleSheet("font-family: 'Outfit', sans-serif; font-size: 32pt; font-weight: 800; color: #FFFFFF; margin-bottom: 20px;")
         sidebar_layout.addWidget(header)
-
-        subtitle = QLabel("CYBER-OFFENSIVE SUITE")
-        subtitle.setAlignment(Qt.AlignCenter)
-        subtitle.setStyleSheet("font-family: 'Consolas'; font-size: 7pt; color: #445; letter-spacing: 3px;")
-        sidebar_layout.addWidget(subtitle)
-        sidebar_layout.addSpacing(35)
+        sidebar_layout.addSpacing(20)
 
         # Navigation Buttons
-        self.btn_nav_dashboard = self.create_nav_button("DASHBOARD", 0)
-        self.btn_nav_scan = self.create_nav_button("SCANNER", 1)
-        self.btn_nav_payloads = self.create_nav_button("PAYLOADS", 2)
-        self.btn_nav_scriptlab = self.create_nav_button("SCRIPT LAB", 3)
-        self.btn_nav_tools = self.create_nav_button("TOOLS / PROXY", 4)
-        self.btn_nav_converter = self.create_nav_button("CONVERTER", 5)
-        self.btn_nav_downloader = self.create_nav_button("DOWNLOADER", 6)
-        self.btn_nav_dorks = self.create_nav_button("DORK ANALYSIS", 7)
-        self.btn_nav_ddos = self.create_nav_button("ATTACK PANEL", 8)
-        self.btn_nav_network = self.create_nav_button("NETWORK & DB ANALYZER", 9)
-        self.btn_nav_supabase = self.create_nav_button("SUPABASE EXPLOITATION", 10)
+        self.btn_nav_dashboard = self.create_nav_button("○ Overview", 0)
+        self.btn_nav_scan = self.create_nav_button("⊞ Scanner", 1)
+        self.btn_nav_payloads = self.create_nav_button("◈ Payloads", 2)
+        self.btn_nav_scriptlab = self.create_nav_button("⚡ Script Lab", 3)
+        self.btn_nav_tools = self.create_nav_button("⚒ Tools", 4)
+        self.btn_nav_converter = self.create_nav_button("⇄ Converter", 5)
+        self.btn_nav_downloader = self.create_nav_button("⬇ Downloader", 6)
+        self.btn_nav_dorks = self.create_nav_button("🔍 Dorks", 7)
+        self.btn_nav_ddos = self.create_nav_button("🔥 Attack", 8)
+        self.btn_nav_network = self.create_nav_button("🌐 Network", 9)
+        self.btn_nav_supabase = self.create_nav_button("◆ Supabase", 10)
+        self.btn_nav_mirror = self.create_nav_button("🪞 Mirror", 11)
+        self.btn_nav_sqlmap = self.create_nav_button("💉 SQLMap", 12)
+        self.btn_nav_portscan = self.create_nav_button("⚒ Port Scan", 13)
+        self.btn_nav_xssscan = self.create_nav_button("💉 XSS Scan", 14)
         
         sidebar_layout.addWidget(self.btn_nav_dashboard)
         sidebar_layout.addWidget(self.btn_nav_scan)
@@ -102,12 +119,19 @@ class MainWindow(QMainWindow):
         sidebar_layout.addWidget(self.btn_nav_ddos)
         sidebar_layout.addWidget(self.btn_nav_network)
         sidebar_layout.addWidget(self.btn_nav_supabase)
+        sidebar_layout.addWidget(self.btn_nav_mirror)
+        sidebar_layout.addWidget(self.btn_nav_sqlmap)
+        sidebar_layout.addWidget(self.btn_nav_portscan)
+        sidebar_layout.addWidget(self.btn_nav_xssscan)
+        # Settings at bottom
         sidebar_layout.addStretch()
-        
+        self.btn_settings = self.create_nav_button("⚙ Settings", 15)
+        sidebar_layout.addWidget(self.btn_settings)
+
         # Version Info
-        version = QLabel("v20.1.0  │  ULTIMA")
+        version = QLabel("v22.0  │  PREMIUM")
         version.setAlignment(Qt.AlignCenter)
-        version.setStyleSheet("color: #334; font-size: 7pt; letter-spacing: 2px;")
+        version.setStyleSheet("color: rgba(255, 255, 255, 0.2); font-size: 8pt; margin-top: 10px;")
         sidebar_layout.addWidget(version)
 
         main_layout.addWidget(self.sidebar)
@@ -160,6 +184,26 @@ class MainWindow(QMainWindow):
         self.page_supabase = self.create_supabase_page()
         self.content_stack.addWidget(self.page_supabase)
         
+        # Page 11: Mirror Proxy
+        self.page_mirror = self.create_mirror_page()
+        self.content_stack.addWidget(self.page_mirror)
+
+        # Page 12: SQLMap
+        self.page_sqlmap = self.create_sqlmap_page()
+        self.content_stack.addWidget(self.page_sqlmap)
+        
+        # Page 13: Port Scan
+        self.page_portscan = self.create_portscan_page()
+        self.content_stack.addWidget(self.page_portscan)
+        
+        # Page 14: XSS Scan
+        self.page_xssscan = self.create_xssscan_page()
+        self.content_stack.addWidget(self.page_xssscan)
+        
+        # Page 15: Settings
+        self.page_settings = self.create_settings_page()
+        self.content_stack.addWidget(self.page_settings)
+        
         # Default Page
         self.btn_nav_dashboard.setChecked(True)
 
@@ -168,6 +212,7 @@ class MainWindow(QMainWindow):
         btn.setObjectName("SidebarButton")
         btn.setCheckable(True)
         btn.setAutoExclusive(True)
+        btn.setMinimumHeight(38)
         # Fix lambda signal issue by accepting the checked arg (lambda x: ...)
         btn.clicked.connect(lambda _, idx=index: self.switch_page(idx))
         return btn
@@ -185,7 +230,7 @@ class MainWindow(QMainWindow):
                     self.scriptlab_widget.set_ai_assistant(ai)
                 if index == 7 and hasattr(self, 'dorks_widget') and not self.dorks_widget.ai_assistant:
                     self.dorks_widget.set_ai_assistant(ai)
-                    self.dorks_widget.set_target(self.txt_target.text().strip())
+                    self.dorks_widget.set_target(self.txt_target.toPlainText().strip())
 
     def create_dashboard_page(self):
         page = QWidget()
@@ -200,132 +245,192 @@ class MainWindow(QMainWindow):
         
         self.funds = FundsWidget()
         self.apply_glow_effect(self.funds, QColor(0, 255, 157, 40))
+        # Header area
+        header_layout = QHBoxLayout()
+        title = QLabel("NEXUS CYBER-OFFENSIVE SUITE")
+        title.setStyleSheet("font-size: 24pt; font-weight: bold; color: #FFFFFF;")
         
-        widgets_layout.addWidget(self.stats, 6)
-        widgets_layout.addWidget(self.funds, 4)
-        layout.addLayout(widgets_layout) # Add the new widgets_layout to the main layout
+        header_layout.addWidget(title)
         
-        # Target Input
-        input_layout = QHBoxLayout()
-        lbl = QLabel("TARGET:")
-        lbl.setStyleSheet("color: #00f3ff; font-weight: bold;")
-        self.txt_target = QLineEdit()
-        self.txt_target.setPlaceholderText("https://example.com")
-        self.txt_target.setStyleSheet("font-size: 11pt; padding: 8px;")
+        # Profile Combo inside Header
+        combo_layout = QHBoxLayout()
+        lbl_profile = QLabel("SCAN PROFILE:")
+        lbl_profile.setStyleSheet("color: #00f3ff; font-weight: bold; font-size: 10pt;")
+        self.combo_profile = QComboBox()
+        self.combo_profile.addItems(["Quick Recon", "Standard Audit", "Deep Pentest", "Stealth Mode", "Governor Mode (Ultra Stealth)"])
+        self.combo_profile.currentIndexChanged.connect(self.on_profile_changed)
         
-        input_layout.addWidget(lbl)
-        input_layout.addWidget(self.txt_target)
-        layout.addLayout(input_layout)
-
-        # --- AI CONFIGURATION ---
-        ai_frame = QFrame()
-        ai_frame.setStyleSheet("background-color: rgba(0, 50, 80, 0.3); border-radius: 5px; padding: 5px;")
-        ai_layout = QHBoxLayout(ai_frame)
+        combo_layout.addWidget(lbl_profile)
+        combo_layout.addWidget(self.combo_profile)
+        combo_layout.addStretch()
+        header_layout.addLayout(combo_layout)
         
-        lbl_ai = QLabel("⚡ AI ENGINE:")
-        lbl_ai.setStyleSheet("color: #ffcc00; font-weight: bold; font-size: 10pt; letter-spacing: 1px;")
+        layout.addLayout(header_layout)
         
-        self.txt_ai_key = QLineEdit()
-        self.txt_ai_key.setPlaceholderText("gsk_... (Groq API Key)")
-        self.txt_ai_key.setEchoMode(QLineEdit.Password)
+        # Stats Row
+        stats_row = QHBoxLayout()
+        self.stats = DashboardStats()
+        stats_row.addWidget(self.stats, stretch=3)
+        self.funds = FundsWidget()
+        stats_row.addWidget(self.funds, stretch=1)
+        layout.addLayout(stats_row)
         
-        from PySide6.QtWidgets import QComboBox
-        self.combo_ai_model = QComboBox()
-        self.combo_ai_model.addItems([
-            # --- Top Tier (Best for Pentesting) ---
-            "llama-3.3-70b-versatile",
-            "openai/gpt-oss-120b",
-            "moonshotai/kimi-k2-instruct-0905",
-            "meta-llama/llama-4-maverick-17b-128k",
-            "meta-llama/llama-4-scout-17b-16e-instruct",
-            # --- Fast / Lightweight ---
-            "openai/gpt-oss-20b",
-            "llama-3.1-8b-instant",
-            "qwen/qwen3-32b",
-            # --- Specialized ---
-            "mixtral-8x7b-32768",
-            "meta-llama/llama-prompt-guard-2-86m",
-        ])
-        # self.combo_ai_model.setEditable(True) # Disabled per user request (wants list only)
-        self.combo_ai_model.setFixedWidth(260)
+        # Action Row
+        action_row = QHBoxLayout()
         
-        ai_layout.addWidget(lbl_ai)
-        ai_layout.addWidget(self.txt_ai_key)
-        ai_layout.addWidget(self.combo_ai_model)
+        # Target Input Multi-line
+        self.txt_target = QTextEdit()
+        self.txt_target.setPlaceholderText("Enter target domain or IP (e.g. target.com)\nSeparate multiple targets by newline...")
+        self.txt_target.setMaximumHeight(80)
+        action_row.addWidget(self.txt_target, stretch=2)
         
-        layout.addWidget(ai_frame)
-        
-        # --- LANGUAGE CONFIGURATION ---
-        lang_frame = QFrame()
-        lang_frame.setStyleSheet("background-color: rgba(60, 0, 80, 0.3); border-radius: 5px; padding: 5px; margin-top: 10px;")
-        lang_layout = QHBoxLayout(lang_frame)
-        
-        lbl_lang = QLabel("🌐 SYSTEM LANGUAGE:")
-        lbl_lang.setStyleSheet("color: #ff00ff; font-weight: bold; font-size: 10pt; letter-spacing: 1px;")
-        
-        self.combo_lang = QComboBox()
-        self.combo_lang.addItems([
-            "English (US)", "Português (Brasil)", "Español", "Français", 
-            "Deutsch", "Русский (Russian)", "中文 (Chinese)", "日本語 (Japanese)",
-            "العربية (Arabic)", "हिन्दी (Hindi)"
-        ])
-        self.combo_lang.setFixedWidth(260)
-        self.combo_lang.currentTextChanged.connect(self.change_language)
-        
-        lang_layout.addWidget(lbl_lang)
-        lang_layout.addStretch()
-        lang_layout.addWidget(self.combo_lang)
-        layout.addWidget(lang_frame)
-        
-        # Quick Actions Layout
-        actions_layout = QHBoxLayout()
-        self.chk_deep = QCheckBox("DEEP_SCAN_PROTOCOL")
-        self.chk_deep.setStyleSheet("font-size: 11pt; color: #00ff9d; font-weight: bold;")
-        
-        self.chk_headless = QCheckBox("HEADLESS_MODE")
-        self.chk_headless.setChecked(True)
-        self.chk_headless.setStyleSheet("font-size: 11pt; color: #00ff9d; font-weight: bold;")
-        
-        self.chk_proxychains = QCheckBox("PROXYCHAINS (SOCKS5 127.0.0.1:9050)")
-        self.chk_proxychains.setStyleSheet("font-size: 11pt; color: #ff9d00; font-weight: bold;")
-        
-        self.btn_start = GlowButton("INITIALIZE SCAN", "#00ff9d")
-        self.btn_start.setObjectName("ActionGreen")
+        self.btn_start = QPushButton("▶ INITIATE ATTACK SEQUENCE")
+        self.btn_start.setObjectName("ActionRed")
+        self.btn_start.setMinimumHeight(50)
         self.btn_start.clicked.connect(self.start_scan)
         
-        self.btn_stop = GlowButton("ABORT OPERATION", "#ff0055")
-        self.btn_stop.setObjectName("ActionRed")
-        self.btn_stop.clicked.connect(self.stop_scan)
+        self.btn_stop = QPushButton("⏹ ABORT")
         self.btn_stop.setEnabled(False)
+        self.btn_stop.setMinimumHeight(50)
+        self.btn_stop.clicked.connect(self.stop_scan)
         
-        self.btn_copy = GlowButton("COPY FINDINGS", "#00f3ff")
-        self.btn_copy.setObjectName("ActionBlue")
-        self.btn_copy.clicked.connect(self.copy_all_findings)
-
-        actions_layout.addWidget(self.chk_deep)
-        actions_layout.addSpacing(15)
-        actions_layout.addWidget(self.chk_headless)
-        actions_layout.addSpacing(15)
-        actions_layout.addWidget(self.chk_proxychains)
-        actions_layout.addStretch()
-        actions_layout.addWidget(self.btn_copy)
-        actions_layout.addWidget(self.btn_start)
-        actions_layout.addWidget(self.btn_stop)
+        action_row.addWidget(self.btn_start, stretch=1)
+        action_row.addWidget(self.btn_stop)
         
-        layout.addLayout(actions_layout)
+        layout.addLayout(action_row)
         
-        # Progress
+        # Checkboxes
+        chk_layout = QHBoxLayout()
+        self.chk_deep = QCheckBox("DEEP_SCAN_PROTOCOL (Crawl depth 5)")
+        self.chk_deep.setStyleSheet("color: #ffcc00;")
+        self.chk_headless = QCheckBox("HEADLESS_MODE (JS Render)")
+        self.chk_headless.setStyleSheet("color: #00f3ff;")
+        self.chk_headless.setChecked(True)
+        self.chk_proxychains = QCheckBox("PROXYCHAINS (Tor/SOCKS)")
+        self.chk_proxychains.setStyleSheet("color: #ff0055;")
+        
+        chk_layout.addWidget(self.chk_deep)
+        chk_layout.addWidget(self.chk_headless)
+        chk_layout.addWidget(self.chk_proxychains)
+        chk_layout.addStretch()
+        layout.addLayout(chk_layout)
+        
+        # Progress Bar & Timer
+        prog_layout = QVBoxLayout()
         self.progress_bar = QProgressBar()
         self.progress_bar.setValue(0)
-        self.progress_bar.setFormat("SYSTEM IDLE")
-        layout.addWidget(self.progress_bar)
-
-        # Recent Findings (Small Table)        # 4. Results Table
+        self.progress_bar.setTextVisible(True)
+        self.progress_bar.setFormat("SYSTEM IDLE 0%")
+        prog_layout.addWidget(self.progress_bar)
+        
+        # Add a label for elapsed time
+        self.lbl_elapsed = QLabel("Elapsed: 00:00")
+        self.lbl_elapsed.setStyleSheet("color: #aaa; font-size: 9pt;")
+        self.lbl_elapsed.setAlignment(Qt.AlignRight)
+        prog_layout.addWidget(self.lbl_elapsed)
+        
+        layout.addLayout(prog_layout)
+        
+        # Log Console
+        self.log_console = QTextEdit()
+        self.log_console.setReadOnly(True)
+        self.log_console.setObjectName("LogConsole")
+        
+        # Apply strict CSS internally for terminal feel
+        self.log_console.setStyleSheet("""
+            QTextEdit {
+                background-color: rgba(10, 10, 15, 0.9);
+                color: #c8ffd4;
+                border: 1px solid rgba(0, 255, 157, 0.2);
+                border-radius: 8px;
+                font-family: 'Consolas', monospace;
+                font-size: 9pt;
+                padding: 10px;
+            }
+        """)
+        
+        layout.addWidget(self.log_console)
+        
+        # Bottom action bar
+        actions = QHBoxLayout()
+        btn_clear = GlowButton("CLEAR LOGS", "#666")
+        btn_clear.clicked.connect(lambda: self.log_console.clear())
+        btn_export = GlowButton("⬇ EXPORT REPORT", "#00f3ff")
+        btn_export.clicked.connect(self.export_report)
+        
+        actions.addWidget(btn_clear)
+        actions.addStretch()
+        actions.addWidget(btn_export)
+        layout.addLayout(actions)
+        
+        # 4. Results Table
         self.results_table = ResultsTable()
         self.apply_glow_effect(self.results_table, QColor(0, 243, 255, 30))
         layout.addWidget(self.results_table)
-
+        
         return page
+
+    def create_scan_page(self):
+        # Currently the scan relies on dashboard for initialization
+        # but provides proxy/settings here.
+        page = QWidget()
+        layout = QHBoxLayout(page)
+        
+        # Proxy Widget
+        self.proxy_widget = ProxyWidget()
+        self.apply_glow_effect(self.proxy_widget, QColor(255, 0, 85, 40))
+        
+        # Sensitive Data Widget
+        self.sensitive_widget = SensitiveDataWidget()
+        self.apply_glow_effect(self.sensitive_widget, QColor(0, 243, 255, 40))
+        
+        layout.addWidget(self.proxy_widget)
+        layout.addWidget(self.sensitive_widget)
+        
+        return page
+
+    def create_payloads_page(self):
+        self.payloads_widget = PayloadsWidget()
+        return self.payloads_widget
+
+    def on_profile_changed(self, index):
+        profile = self.combo_profile.currentText()
+        try:
+            if profile == "Quick Recon":
+                self.chk_deep.setChecked(False)
+                self.proxy_widget.chk_bypass.setChecked(False)
+                self.chk_proxychains.setChecked(False)
+            elif profile == "Standard Audit":
+                self.chk_deep.setChecked(True)
+                self.proxy_widget.chk_bypass.setChecked(True)
+                self.chk_proxychains.setChecked(False)
+            elif profile == "Deep Pentest":
+                self.chk_deep.setChecked(True)
+                self.proxy_widget.chk_bypass.setChecked(True)
+                self.chk_proxychains.setChecked(False)
+            elif profile == "Stealth Mode":
+                self.chk_deep.setChecked(True)
+                self.proxy_widget.chk_bypass.setChecked(True)
+                self.chk_proxychains.setChecked(True)
+            elif profile == "Governor Mode (Ultra Stealth)":
+                self.chk_deep.setChecked(True)
+                self.proxy_widget.chk_bypass.setChecked(True)
+                self.chk_proxychains.setChecked(True)
+                if hasattr(self, 'chk_headless'): self.chk_headless.setChecked(True)
+                if hasattr(self.proxy_widget, 'chk_strict'): self.proxy_widget.chk_strict.setChecked(False)  # More aggressive
+                if hasattr(self.proxy_widget, 'chk_timeout'): self.proxy_widget.chk_timeout.setChecked(True)
+                if hasattr(self.proxy_widget, 'chk_req_smuggle'): self.proxy_widget.chk_req_smuggle.setChecked(True)
+                if hasattr(self.proxy_widget, 'chk_403_bypass'): self.proxy_widget.chk_403_bypass.setChecked(True)
+                if hasattr(self.proxy_widget, 'chk_header_rot'): self.proxy_widget.chk_header_rot.setChecked(True)
+                if hasattr(self.proxy_widget, 'chk_auto_tune'): self.proxy_widget.chk_auto_tune.setChecked(True)
+        except AttributeError:
+            pass # Widget not loaded yet
+
+    @Slot()
+    def _update_timer(self):
+        self.scan_elapsed += 1
+        mins, secs = divmod(self.scan_elapsed, 60)
+        self.progress_bar.setFormat(f"SCANNING IN PROGRESS... %p% | Elapsed: {mins:02d}:{secs:02d}")
 
     def change_language(self, language):
         """Translates basic UI controls based on language selected."""
@@ -399,22 +504,36 @@ class MainWindow(QMainWindow):
         page = QWidget()
         layout = QHBoxLayout(page)
         
-        # Proxy Widget
+        # We need a splitter to comfortably fit the three tool panels
+        from PySide6.QtWidgets import QSplitter
+        splitter = QSplitter(Qt.Horizontal)
+        
+        # 1. Proxy / Evasion Settings
         self.proxy_widget = ProxyWidget()
         self.apply_glow_effect(self.proxy_widget, QColor(255, 0, 85, 40))
+        splitter.addWidget(self.proxy_widget)
         
-        # Sensitive Data Widget
+        # 2. Sensitive Data Viewer
         self.sensitive_widget = SensitiveDataWidget()
         self.apply_glow_effect(self.sensitive_widget, QColor(0, 243, 255, 40))
+        splitter.addWidget(self.sensitive_widget)
         
-        layout.addWidget(self.proxy_widget)
-        layout.addWidget(self.sensitive_widget)
+        # 3. AMSI Analyzer Widget
+        self.amsi_widget = AMSIWidget()
+        self.apply_glow_effect(self.amsi_widget, QColor(157, 0, 255, 40))
+        splitter.addWidget(self.amsi_widget)
         
+        layout.addWidget(splitter)
         return page
 
-    def create_payloads_page(self):
-        self.payloads_widget = PayloadsWidget()
-        return self.payloads_widget
+    def create_converter_page(self):
+        # Placeholder for converter, currently unused but linked to sidebar
+        page = QWidget()
+        layout = QVBoxLayout(page)
+        lbl = QLabel("Converter Tools - Coming Soon")
+        lbl.setStyleSheet("color: #888; font-size: 14pt;")
+        layout.addWidget(lbl)
+        return page
 
     def create_scriptlab_page(self):
         self.scriptlab_widget = ScriptLabWidget()
@@ -433,24 +552,38 @@ class MainWindow(QMainWindow):
 
     @Slot()
     def start_scan(self):
-        # We target the first target passed or default
-        target_url = self.txt_target.text().strip()
-        if not target_url and not self.targets:
+        # Multi-target support
+        target_text = self.txt_target.toPlainText().strip()
+        
+        # Aggressive cleanup of accidentally pasted terminal prompts / paths
+        target_text = re.sub(r'^[A-Z]:\\[^\n]*>', '', target_text, flags=re.MULTILINE).strip()
+        
+        scan_targets = []
+        if target_text:
+            for t in target_text.split('\n'):
+                t = t.strip()
+                if t:
+                    # Strip local path trails if pasted like "target.com/C:\some\path"
+                    if ">main.py" in t or t.endswith(".py"):
+                        t = t.split('>')[0].split('/')[-1] # fallback attempt
+
+                    if not t.startswith("http") and not t.startswith("https"): 
+                        t = "https://" + t
+                    scan_targets.append({"name": "Global Target", "url": t})
+
+        if not scan_targets and not self.targets:
              QMessageBox.warning(self, "Error", "Target URL is required for initialization.")
              return
              
-        if not target_url and self.targets:
+        if not scan_targets and self.targets:
             target_url = self.targets[0]['url']
-            
-        if not target_url.startswith("http"): target_url = "https://" + target_url
+            if not target_url.startswith("http"): target_url = "https://" + target_url
+            scan_targets.append({"name": "Global Target", "url": target_url})
 
-        # Build scan targets
-        scan_targets = [{"name": "Global Target", "url": target_url}]
-        
         self.btn_start.setEnabled(False)
         self.txt_target.setEnabled(False)
         self.btn_stop.setEnabled(True)
-        self.progress_bar.setFormat("SCANNING IN PROGRESS... %p%")
+        self.progress_bar.setFormat("SCANNING IN PROGRESS... 0%")
         
         self.progress_bar.setValue(0)
         self.results_table.setRowCount(0)
@@ -459,6 +592,9 @@ class MainWindow(QMainWindow):
         self.all_findings = []
         self.stats.update_stats(0, 0, 0)
         
+        self.scan_elapsed = 0
+        self.scan_timer.start(1000)
+        
         is_deep = self.chk_deep.isChecked()
         is_bypass = self.proxy_widget.chk_bypass.isChecked()
         is_headless = self.chk_headless.isChecked()
@@ -466,6 +602,15 @@ class MainWindow(QMainWindow):
         is_strict = self.proxy_widget.chk_strict.isChecked()
         is_dynamic_timeout = self.proxy_widget.chk_timeout.isChecked()
         is_heuristic = self.proxy_widget.chk_heuristic.isChecked()
+        is_smuggle = self.proxy_widget.chk_req_smuggle.isChecked()
+        is_ssl_strip = self.proxy_widget.chk_ssl_strip.isChecked()
+        is_dom_invader = self.proxy_widget.chk_dom_poll.isChecked()
+        
+        # New Evasion toggles
+        is_403_bypass = self.proxy_widget.chk_403_bypass.isChecked()
+        is_header_rot = self.proxy_widget.chk_header_rot.isChecked()
+        is_auto_tune = self.proxy_widget.chk_auto_tune.isChecked()
+        is_governor = (self.combo_profile.currentText() == "Governor Mode (Ultra Stealth)")
         
         # Get AI Config
         ai_key = self.txt_ai_key.text().strip()
@@ -480,8 +625,15 @@ class MainWindow(QMainWindow):
             strict_validation=is_strict,
             dynamic_timeout=is_dynamic_timeout,
             heuristic_mining=is_heuristic,
+            req_smuggle=is_smuggle,
+            ssl_strip=is_ssl_strip,
+            dom_polling=is_dom_invader,
+            active_403_bypass=is_403_bypass,
+            header_rotation=is_header_rot,
+            auto_tune=is_auto_tune,
             ai_key=ai_key,
-            ai_model=ai_model
+            ai_model=ai_model,
+            governor_mode=is_governor
         )
         self.connect_signals()
 
@@ -493,13 +645,14 @@ class MainWindow(QMainWindow):
                 self.scriptlab_widget.set_ai_assistant(lab_ai)
             if hasattr(self, 'dorks_widget'):
                 self.dorks_widget.set_ai_assistant(lab_ai)
-                self.dorks_widget.set_target(self.txt_target.text().strip())
+                self.dorks_widget.set_target(self.txt_target.toPlainText().strip())
         
         asyncio.ensure_future(self.scanner.run_scan())
 
     @Slot()
     def stop_scan(self):
         if self.scanner: self.scanner.stop_scan()
+        if self.scan_timer.isActive(): self.scan_timer.stop()
         self.reset_controls()
         self.progress_bar.setFormat("ABORTED")
 
@@ -564,6 +717,24 @@ class MainWindow(QMainWindow):
         if hasattr(self, 'lbl_log_count'):
             count = self.log_console.document().blockCount()
             self.lbl_log_count.setText(f"{count} entries")
+            
+        # Governor Mode Alert (Visual Highlight Flash)
+        if "[Governor]" in message and "CRITICAL" in message:
+            self._flash_console()
+
+    def _flash_console(self):
+        """Creates a subtle visual pulse in the console for extreme events."""
+        original_style = self.log_console.styleSheet()
+        flash_style = """
+            QTextEdit {
+                background-color: rgba(255, 0, 85, 0.4);
+                color: #ffffff;
+                border: 2px solid #ff0055;
+            }
+        """
+        self.log_console.setStyleSheet(flash_style)
+        # Restore after 300ms
+        QTimer.singleShot(300, lambda: self.log_console.setStyleSheet(original_style))
 
     @Slot(str, str)
     def on_sensitive_data(self, title, content):
@@ -584,8 +755,33 @@ class MainWindow(QMainWindow):
 
     @Slot()
     def on_scan_finished(self):
+        if self.scan_timer.isActive(): self.scan_timer.stop()
         self.reset_controls()
         self.progress_bar.setFormat("TASK COMPLETE")
+        
+        # Send data to Firebase
+        target_text = self.txt_target.toPlainText().strip()
+        target_url = target_text.split('\n')[0] if target_text else (self.targets[0]['url'] if self.targets else "Unknown")
+        
+        if self.all_findings:
+             # Lazy initialize firebase and check if path is set
+             fb_path = self.txt_firebase_path.text().strip()
+             if fb_path and self.firebase is None:
+                 try:
+                     self.firebase = FirebaseReporter(fb_path)
+                 except Exception as e:
+                     self.on_log_message(f"<span style='color:#ff5555'>[!] Firebase Auth Error: {str(e)}</span>")
+                     
+             if self.firebase:
+                 self.on_log_message("<span style='color:#00f3ff'>[*] Uploading final report to Firebase...</span>")
+                 success = self.firebase.send_report(target_url, self.all_findings)
+                 if success:
+                     self.on_log_message("<span style='color:#00ff9d'>[+] Firebase upload SUCCESS.</span>")
+                 else:
+                     self.on_log_message("<span style='color:#ff5555'>[!] Firebase upload FAILED. Check logs.</span>")
+             else:
+                 self.on_log_message("<span style='color:#aaaaaa'>[info] Firebase not configured. Skipping cloud upload.</span>")
+
         QMessageBox.information(self, "Scan Complete", "Operation finished successfully.")
 
         self.btn_stop.setEnabled(False)
@@ -790,7 +986,7 @@ class MainWindow(QMainWindow):
             layout.addWidget(self.ddos_widget)
             
         except Exception as e:
-            QMessageBox.critical(self, "Error", f"Failed to load Attack Panel:\n{str(e)}")
+            QMessageBox.critical(self, "Lazy Load Error", f"Failed to load Attack Panel: {e}")
 
     def create_network_page(self):
         self.network_widget = NetworkAnalyzerWidget()
@@ -799,3 +995,93 @@ class MainWindow(QMainWindow):
     def create_supabase_page(self):
         self.supabase_widget = SupabaseWidget()
         return self.supabase_widget
+
+    def create_mirror_page(self):
+        self.mirror_widget = MirrorWidget()
+        return self.mirror_widget
+
+    def create_sqlmap_page(self):
+        self.sqlmap_widget = SqlMapWidget()
+        return self.sqlmap_widget
+
+    def create_portscan_page(self):
+        self.portscan_widget = PortScanWidget()
+        return self.portscan_widget
+
+    def create_xssscan_page(self):
+        self.xssscan_widget = XssScanWidget()
+        return self.xssscan_widget
+
+    def create_settings_page(self):
+        page = QWidget()
+        layout = QVBoxLayout(page)
+        layout.setSpacing(20)
+        layout.setContentsMargins(30, 30, 30, 30)
+
+        title = QLabel("⚙ SYSTEM SETTINGS")
+        title.setStyleSheet("color: #FFFFFF; font-weight: 800; font-size: 24pt; letter-spacing: -1px;")
+        layout.addWidget(title)
+        
+        desc = QLabel("Configure global application parameters, AI engine credentials, and system localization.")
+        desc.setStyleSheet("color: rgba(255, 255, 255, 0.6); font-size: 11pt;")
+        layout.addWidget(desc)
+
+        # AI Configuration
+        ai_panel = QFrame()
+        ai_panel.setObjectName("ContentPanel")
+        ai_layout = QVBoxLayout(ai_panel)
+        
+        lbl_ai = QLabel("⚡ AI ENGINE CONFIGURATION")
+        lbl_ai.setStyleSheet("color: #00F3FF; font-weight: bold; font-size: 10pt; letter-spacing: 1px;")
+        ai_layout.addWidget(lbl_ai)
+
+        self.txt_ai_key = QLineEdit()
+        self.txt_ai_key.setPlaceholderText("Enter Groq API Key (gsk_...)")
+        self.txt_ai_key.setEchoMode(QLineEdit.Password)
+        self.txt_ai_key.setStyleSheet("padding: 12px; font-size: 10pt;")
+        ai_layout.addWidget(self.txt_ai_key)
+
+        self.combo_ai_model = QComboBox()
+        self.combo_ai_model.addItems([
+            "llama-3.3-70b-versatile",
+            "openai/gpt-oss-120b",
+            "moonshotai/kimi-k2-instruct-0905",
+            "meta-llama/llama-4-maverick-17b-128k",
+            "meta-llama/llama-4-scout-17b-16e-instruct",
+            "mixtral-8x7b-32768",
+        ])
+        ai_layout.addWidget(self.combo_ai_model)
+        
+        lbl_firebase = QLabel("🔥 FIREBASE CREDENTIALS (JSON PATH)")
+        lbl_firebase.setStyleSheet("color: #00F3FF; font-weight: bold; font-size: 10pt; letter-spacing: 1px; margin-top: 15px;")
+        ai_layout.addWidget(lbl_firebase)
+
+        self.txt_firebase_path = QLineEdit()
+        self.txt_firebase_path.setPlaceholderText("C:/path/to/firebase-sdk.json")
+        self.txt_firebase_path.setStyleSheet("padding: 12px; font-size: 10pt;")
+        # Keep old bionicdragon path as default to preserve backwards compat if it is valid locally
+        self.txt_firebase_path.setText(r"c:\Users\bionicdragon\Downloads\sunshinecursos-5f92a-firebase-adminsdk-fbsvc-f534ab6d5c.json")
+        ai_layout.addWidget(self.txt_firebase_path)
+
+        layout.addWidget(ai_panel)
+
+        # Localization
+        lang_panel = QFrame()
+        lang_panel.setObjectName("ContentPanel")
+        lang_layout = QVBoxLayout(lang_panel)
+        
+        lbl_lang = QLabel("🌐 SYSTEM LANGUAGE")
+        lbl_lang.setStyleSheet("color: #00F3FF; font-weight: bold; font-size: 10pt; letter-spacing: 1px;")
+        lang_layout.addWidget(lbl_lang)
+
+        self.combo_lang = QComboBox()
+        self.combo_lang.addItems([
+            "English (US)", "Português (Brasil)", "Español", "Français", 
+            "Deutsch", "Русский (Russian)", "中文 (Chinese)", "日本語 (Japanese)"
+        ])
+        self.combo_lang.currentTextChanged.connect(self.change_language)
+        lang_layout.addWidget(self.combo_lang)
+        layout.addWidget(lang_panel)
+
+        layout.addStretch()
+        return page
