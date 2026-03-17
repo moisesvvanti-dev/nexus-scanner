@@ -2,3 +2,5 @@ key.txt
 logs/
 .venv/
 __pycache__/
+
+*-firebase-adminsdk-*.json
