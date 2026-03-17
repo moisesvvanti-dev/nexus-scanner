@@ -1080,24 +1080,28 @@ class MainWindow(QMainWindow):
         ai_panel.setObjectName("ContentPanel")
         ai_layout = QVBoxLayout(ai_panel)
         
-        lbl_ai = QLabel("⚡ AI ENGINE CONFIGURATION")
-        lbl_ai.setStyleSheet("color: #00F3FF; font-weight: bold; font-size: 10pt; letter-spacing: 1px;")
-        ai_layout.addWidget(lbl_ai)
+        lbl_ai_key = QLabel("AI API KEY (Leave blank for Ollama):")
+        lbl_ai_key.setStyleSheet("color: #ffcc00; font-weight: bold; font-size: 10pt;")
+        ai_layout.addWidget(lbl_ai_key)
 
         self.txt_ai_key = QLineEdit()
-        self.txt_ai_key.setPlaceholderText("Enter Groq API Key (gsk_...)")
+        self.txt_ai_key.setPlaceholderText("gsk_... or sk-... (Not needed for local Ollama)")
         self.txt_ai_key.setEchoMode(QLineEdit.Password)
         self.txt_ai_key.setStyleSheet("padding: 12px; font-size: 10pt;")
         ai_layout.addWidget(self.txt_ai_key)
+        
+        lbl_ai_model = QLabel("AI BRAIN MODEL:")
+        lbl_ai_model.setStyleSheet("color: #ffcc00; font-weight: bold; font-size: 10pt;")
+        ai_layout.addWidget(lbl_ai_model)
 
         self.combo_ai_model = QComboBox()
         self.combo_ai_model.addItems([
+            "llama3:8b",
             "llama-3.3-70b-versatile",
-            "openai/gpt-oss-120b",
-            "moonshotai/kimi-k2-instruct-0905",
-            "meta-llama/llama-4-maverick-17b-128k",
-            "meta-llama/llama-4-scout-17b-16e-instruct",
+            "llama-3.1-8b-instant",
             "mixtral-8x7b-32768",
+            "gpt-4-turbo",
+            "claude-3-opus"
         ])
         ai_layout.addWidget(self.combo_ai_model)
         

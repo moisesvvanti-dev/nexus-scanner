@@ -1,0 +1,37 @@
+URL: https://dominos.com.br
+Timestamp: Tue Mar 17 17:01:30 2026
+----------------------------------------
+admin.domlivery.dominos.com.br
+api-360.dominos.com.br
+api-new.dominos.com.br
+api.dominos.com.br
+api.domlivery.dominos.com.br
+app.dominos.com.br
+blog-conversao-bandeira.dominos.com.br
+blogfranquia.dominos.com.br
+blogfranquias.dominos.com.br
+callcenter.dominos.com.br
+csd.dominos.com.br
+csdhom.dominos.com.br
+delivery.dominos.com.br
+domlivery.dominos.com.br
+feedback.dominos.com.br
+feeedback-hml.dominos.com.br
+files.domlivery.dominos.com.br
+franquias.dominos.com.br
+gcom.dominos.com.br
+integrations.domlivery.dominos.com.br
+loja.domlivery.dominos.com.br
+m.dominos.com.br
+mapa-hml.dominos.com.br
+mx1.dominos.com.br
+mx2.dominos.com.br
+o174.mkt.dominos.com.br
+o175.mkt.dominos.com.br
+onesuite.dominos.com.br
+order.dominos.com.br
+painel-new.dominos.com.br
+painel.dominos.com.br
+planob.dominos.com.br
+webservice.dominos.com.br
+www.dominos.com.br

@@ -293,7 +293,7 @@ class NexusScanner(QObject):
     def __init__(self, targets: list[dict], deep_scan=False, bypass_mode=False, 
                  headless=True, proxychains=False, strict_validation=True, 
                  dynamic_timeout=False, ai_key=None, 
-                 ai_model="llama3-70b-8192", 
+                 ai_model="llama3:8b", 
                  heuristic_mining=False, governor_mode=False, **kwargs):
         super().__init__()
         self.targets = targets
@@ -305,7 +305,7 @@ class NexusScanner(QObject):
         self.dynamic_timeout = dynamic_timeout
         self.heuristic_mining = heuristic_mining 
         self.ai_key = ai_key
-        self.ai_model = ai_model or "llama3-70b-8192"
+        self.ai_model = ai_model or "llama3"
         self.governor_mode = governor_mode
         
         # UI Bypass Integration Options
@@ -329,11 +329,12 @@ class NexusScanner(QObject):
         self.proxy_manager = ProxyManager()
         self.dumper = CredentialDumper()
         
-        # AI Assistant
-        self.ai_assistant = None
-        if ai_key:
-            from core.ai_assistant import AIAssistant
-            self.ai_assistant = AIAssistant(ai_key, model=ai_model or "llama3-70b-8192")
+        # God-Level AI Assistant (Ollama Default)
+        from core.ai_assistant import AIAssistant
+        self.ai_assistant = AIAssistant(api_key=ai_key, model=ai_model) if ai_key or "llama3" in ai_model else None
+        self._weaponization_queue = asyncio.Queue()
+        self._weaponization_worker_task = None
+        if self.ai_assistant:
             self.ai_assistant.log_message.connect(self.log_message.emit)
         
         # Stats
@@ -1693,10 +1694,21 @@ class NexusScanner(QObject):
 
             # AUTO-WEAPONIZE CRITICAL FINDINGS (AI Powered)
             if self.ai_assistant and vuln.severity == "CRITICAL":
-                 asyncio.create_task(self._weaponize_critical_vuln(vuln))
+                 self._weaponization_queue.put_nowait(vuln)
                   
         self.finding_found.emit(vuln)
         self.stats_updated.emit(self.total_findings, self.critical_findings, self.request_count)
+
+    async def _weaponization_worker(self):
+        """Background worker that pulls from weaponization queue."""
+        while True:
+            vuln = await self._weaponization_queue.get()
+            try:
+                await self._weaponize_critical_vuln(vuln)
+            except Exception as e:
+                print(f"[!] Weaponization Worker Error: {e}")
+            finally:
+                self._weaponization_queue.task_done()
 
     async def _weaponize_critical_vuln(self, vuln):
         """Triggers a targeted weaponization attack chain for a specific critical finding."""
@@ -1776,9 +1788,12 @@ class NexusScanner(QObject):
             scan_list = self.targets.copy()
             total_targets = len(scan_list)
             
-            for i, target in enumerate(scan_list):
+            # Start Weaponization Worker
+            self._weaponization_worker_task = asyncio.create_task(self._weaponization_worker())
+            
+            for i, target_info in enumerate(self.targets):
                 if not self.is_running: break
-                url = target['url']
+                url = target_info['url']
                 hostname = urlparse(url).hostname
                 
                 self.log_message.emit(f"<br><span style='color:#00f3ff; font-weight:bold'>[+] ANALYZING TARGET: {url}</span>")
@@ -2007,6 +2022,10 @@ class NexusScanner(QObject):
              import traceback
              traceback.print_exc()
         finally:
+             # Cancel Weaponization Worker
+             if self._weaponization_worker_task:
+                 self._weaponization_worker_task.cancel()
+                 
              if self.session:
                  await self.session.close()
              self.log_message.emit("<br><h3 style='color:#00ff9d'>[+] SCAN COMPLETE.</h3>")

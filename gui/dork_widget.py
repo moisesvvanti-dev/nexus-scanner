@@ -117,21 +117,20 @@ class DorkWidget(QWidget):
         ai_frame.setStyleSheet("background-color: rgba(60, 40, 0, 0.3); border-radius: 5px; padding: 5px;")
         ai_layout = QHBoxLayout(ai_frame)
 
-        lbl_ai = QLabel("🔑 GROQ KEY:")
+        lbl_ai = QLabel("AI API KEY (Optional for Ollama):")
         lbl_ai.setStyleSheet("color: #ffcc00; font-weight: bold; font-size: 9pt;")
 
         self.txt_groq_key = QLineEdit()
-        self.txt_groq_key.setPlaceholderText("gsk_... (groq.com/keys — needed for AI dork generation)")
+        self.txt_groq_key.setPlaceholderText("API Key (Optional for local Ollama llama3:8b)")
         self.txt_groq_key.setEchoMode(QLineEdit.Password)
 
         self.combo_model = QComboBox()
         self.combo_model.addItems([
+            "llama3:8b",
             "llama-3.3-70b-versatile",
-            "moonshotai/kimi-k2-instruct-0905",
-            "meta-llama/llama-4-maverick-17b-128k",
             "llama-3.1-8b-instant",
-            "qwen/qwen3-32b",
             "mixtral-8x7b-32768",
+            "qwen/qwen3-32b",
         ])
         self.combo_model.setFixedWidth(260)
 

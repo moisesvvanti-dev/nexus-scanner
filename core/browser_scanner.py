@@ -31,7 +31,7 @@ class BrowserScanner(QObject):
     screenshot_taken = Signal(str)
     payload_generated = Signal(str, str)  # url, script
 
-    def __init__(self, target_url, deep_scan=False, headless=True, proxychains=False, ai_key=None, ai_model=None):
+    def __init__(self, target_url, deep_scan=False, headless=True, proxychains=False, ai_key=None, ai_model="llama3:8b"):
         super().__init__()
         self.target_url = target_url
         self.deep_scan = deep_scan

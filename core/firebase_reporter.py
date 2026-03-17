@@ -22,8 +22,9 @@ class FirebaseReporter:
                 self.app = firebase_admin.initialize_app(cred, {
                     'databaseURL': f'https://{project_id}-default-rtdb.firebaseio.com'
                 })
-        except Exception as e:
-            print(f"Error initializing Firebase: {e}")
+        except Exception:
+            # Silence "File not found" errors as it's an optional feature
+            pass
 
     def send_report(self, target_url, findings):
         if not firebase_admin._apps:
@@ -39,7 +40,7 @@ class FirebaseReporter:
                 "timestamp": datetime.now().isoformat(),
                 "findings_count": len(findings),
                 "critical_count": sum(1 for f in findings if getattr(f, 'severity', '') == 'CRITICAL'),
-                "findings": []
+                "findings": list()
             }
             
             for f in findings:

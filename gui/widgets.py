@@ -655,23 +655,20 @@ class ScriptLabWidget(QWidget):
         from PySide6.QtWidgets import QComboBox
         api_row = QHBoxLayout()
         
-        lbl_key = QLabel("🔑 GROQ KEY:")
+        lbl_key = QLabel("AI API KEY (Optional for Ollama):")
         lbl_key.setStyleSheet("color: #ffcc00; font-weight: bold; font-size: 9pt;")
         
         self.txt_api_key = QLineEdit()
-        self.txt_api_key.setPlaceholderText("gsk_... (groq.com/keys)")
+        self.txt_api_key.setPlaceholderText("API Key (e.g. gsk_...) - Not needed for llama3:8b")
         self.txt_api_key.setEchoMode(QLineEdit.Password)
         
         self.combo_model = QComboBox()
         self.combo_model.addItems([
+            "llama3:8b",
             "llama-3.3-70b-versatile",
-            "openai/gpt-oss-120b",
-            "moonshotai/kimi-k2-instruct-0905",
-            "meta-llama/llama-4-maverick-17b-128k",
             "llama-3.1-8b-instant",
-            "qwen/qwen3-32b",
-            "openai/gpt-oss-20b",
             "mixtral-8x7b-32768",
+            "qwen/qwen3-32b",
         ])
         self.combo_model.setFixedWidth(260)
         
