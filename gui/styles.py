@@ -20,121 +20,134 @@ QWidget {
     font-size: 10pt;
 }
 
-/* ═══════ PREMIUM GLASS PANELS (MOCKUP ACCURATE) ═══════ */
-QFrame, QWidget#DashboardStats, QWidget#ContentPanel {
-    background-color: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    border-radius: 20px;
+
+/* ═══════ PREMIUM GLASS PANELS ═══════ */
+QFrame, QWidget#DashboardStats, QWidget#ContentPanel, QScrollArea {
+    background-color: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 24px;
 }
 
-/* ═══════ SIDEBAR (FLAT MINIMALIST) ═══════ */
+/* ═══════ SIDEBAR (FROSTED GLASS) ═══════ */
 QWidget#Sidebar {
-    background-color: rgba(0, 0, 0, 0.3);
-    border-right: 1px solid rgba(255, 255, 255, 0.05);
+    background-color: rgba(0, 0, 0, 0.4);
+    border-right: 1px solid rgba(0, 243, 255, 0.2);
+    border-top-right-radius: 30px;
+    border-bottom-right-radius: 30px;
 }
 
 QPushButton#SidebarButton {
     background-color: transparent;
     border: none;
-    color: rgba(255, 255, 255, 0.5);
+    color: rgba(255, 255, 255, 0.4);
     text-align: left;
-    padding: 8px 16px;
-    margin: 2px 12px;
-    font-size: 11pt;
-    font-weight: 500;
+    padding: 8px 18px;
+    margin: 2px 10px;
+    font-size: 10pt;
+    font-weight: 600;
     border-radius: 12px;
+    letter-spacing: 1px;
 }
 
 QPushButton#SidebarButton:hover {
-    background-color: rgba(255, 255, 255, 0.08);
-    color: #FFFFFF;
+    background-color: rgba(255, 255, 255, 0.07);
+    color: #00f3ff;
 }
 
 QPushButton#SidebarButton:checked {
-    background-color: qlineargradient(
-        x1: 0, y1: 0, x2: 1, y2: 0,
-        stop: 0 rgba(0, 243, 255, 0.3), stop: 1 rgba(255, 255, 255, 0.1)
-    );
-    border-left: 4px solid #00f3ff;
-    color: #FFFFFF;
-    font-weight: 700;
+    background-color: rgba(0, 243, 255, 0.15);
+    border: 1px solid rgba(0, 243, 255, 0.4);
+    color: #00f3ff;
+    font-weight: 800;
 }
 
-/* ═══════ BUTTONS (GLASS PILLS) ═══════ */
+/* ═══════ BUTTONS (NEON GLASS) ═══════ */
 QPushButton {
-    background-color: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: 12px;
+    background-color: rgba(0, 243, 255, 0.05);
+    border: 1px solid rgba(0, 243, 255, 0.2);
+    border-radius: 14px;
     color: #FFFFFF;
-    padding: 10px 24px;
-    font-weight: 600;
+    padding: 12px 28px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
 }
 
 QPushButton:hover {
-    background-color: rgba(255, 255, 255, 0.15);
-    border: 1px solid rgba(255, 255, 255, 0.4);
-}
-
-QPushButton:pressed {
-    background-color: rgba(255, 255, 255, 0.02);
+    background-color: rgba(0, 243, 255, 0.15);
+    border: 1px solid #00f3ff;
+    color: #00f3ff;
 }
 
 /* Action Variants */
 QPushButton#ActionGreen {
-    background-color: rgba(0, 255, 157, 0.15);
-    border: 1px solid rgba(0, 255, 157, 0.4);
+    background-color: rgba(0, 255, 157, 0.1);
+    border: 1px solid rgba(0, 255, 157, 0.3);
     color: #00ff9d;
 }
 
 QPushButton#ActionGreen:hover {
-    background-color: rgba(0, 255, 157, 0.3);
-    border: 1px solid rgba(0, 255, 157, 0.8);
-    box-shadow: 0 0 15px rgba(0, 255, 157, 0.5);
+    background-color: rgba(0, 255, 157, 0.2);
+    border: 1px solid #00ff9d;
 }
 
 QPushButton#ActionRed {
-    background-color: rgba(255, 0, 85, 0.15);
-    border: 1px solid rgba(255, 0, 85, 0.4);
+    background-color: rgba(255, 0, 85, 0.1);
+    border: 1px solid rgba(255, 0, 85, 0.3);
     color: #ff0055;
 }
 
 QPushButton#ActionRed:hover {
-    background-color: rgba(255, 0, 85, 0.3);
-    border: 1px solid rgba(255, 0, 85, 0.8);
+    background-color: rgba(255, 0, 85, 0.2);
+    border: 1px solid #ff0055;
 }
 
-/* ═══════ INPUT FIELDS (SUBTLE GLASS) ═══════ */
-QLineEdit, QTextEdit, QPlainTextEdit, QComboBox {
-    background-color: rgba(0, 0, 0, 0.3);
-    border: 1px solid rgba(255, 255, 255, 0.15);
+/* ═══════ TABLES (ULTRA CLEAN GLASS) ═══════ */
+QTableWidget {
+    background-color: rgba(255, 255, 255, 0.02);
+    gridline-color: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 15px;
+    color: #e0e0e0;
+    selection-background-color: rgba(0, 243, 255, 0.2);
+    selection-color: #00f3ff;
+}
+
+QHeaderView::section {
+    background-color: rgba(0, 0, 0, 0.5);
+    color: #00f3ff;
+    padding: 10px;
+    border: none;
+    font-weight: 800;
+    text-transform: uppercase;
+}
+
+/* ═══════ INPUTS ═══════ */
+QLineEdit, QTextEdit, QComboBox {
+    background-color: rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 12px;
-    color: #FFFFFF;
-    padding: 12px;
+    color: #fff;
+    padding: 10px;
 }
 
-QLineEdit:focus, QTextEdit:focus, QComboBox:focus {
+QLineEdit:focus {
     border: 1px solid #00f3ff;
-    background-color: rgba(0, 243, 255, 0.05);
 }
 
 /* ═══════ PROGRESS BAR ═══════ */
 QProgressBar {
-    background-color: rgba(255, 255, 255, 0.05);
+    background-color: rgba(0, 0, 0, 0.3);
     border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 6px;
+    border-radius: 8px;
     text-align: center;
-    color: white;
-    font-weight: bold;
-    height: 20px;
 }
 
 QProgressBar::chunk {
-    background-color: qlineargradient(
-        x1: 0, y1: 0, x2: 1, y2: 0,
-        stop: 0 #00f3ff, stop: 1 #00ff9d
-    );
-    border-radius: 6px;
+    background-color: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #00f3ff, stop:1 #ff00ff);
+    border-radius: 8px;
 }
+
 
 /* ═══════ COMBO BOX, SCROLLBAR & TABS ═══════ */
 QComboBox::drop-down {

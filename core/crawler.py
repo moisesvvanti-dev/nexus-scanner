@@ -2,6 +2,7 @@ import aiohttp
 import asyncio
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin, urlparse, parse_qs
+import lxml
 
 class WebCrawler:
     def __init__(self, start_url):
@@ -18,23 +19,33 @@ class WebCrawler:
         # 2. Parse Sitemap.xml
         await self._parse_sitemap(session)
         
-        to_visit = [(self.start_url, 0)]
         domain = urlparse(self.start_url).netloc
+        queue = asyncio.Queue()
+        queue.put_nowait((self.start_url, 0))
 
-        while to_visit:
-            url, current_depth = to_visit.pop(0)
-            if url in self.visited or current_depth > depth:
-                continue
-            
-            self.visited.add(url)
-            
-            try:
-                async with session.get(url, timeout=5) as response:
-                    if response.status == 200:
-                        html = await response.text()
-                        soup = BeautifulSoup(html, 'html.parser')
-                        
-                        # Extract links
+        async def worker():
+            while True:
+                try:
+                    url, current_depth = await asyncio.wait_for(queue.get(), timeout=3.0)
+                except asyncio.TimeoutError:
+                    break
+                except asyncio.CancelledError:
+                    break
+                
+                if url in self.visited or current_depth > depth:
+                    queue.task_done()
+                    continue
+                
+                self.visited.add(url)
+                
+                try:
+                    async with session.get(url, timeout=5) as response:
+                        if response.status == 200:
+                            html = await response.text()
+                            # Offload CPU-bound parsing to thread pool with fast lxml
+                            soup = await asyncio.to_thread(BeautifulSoup, html, 'lxml')
+                            
+                            # Extract links
                         for link in soup.find_all('a', href=True):
                             full_url = urljoin(url, link['href'])
                             parsed = urlparse(full_url)
@@ -42,7 +53,7 @@ class WebCrawler:
                             # Only crawl same domain
                             if parsed.netloc == domain:
                                 if full_url not in self.visited:
-                                    to_visit.append((full_url, current_depth + 1))
+                                    queue.put_nowait((full_url, current_depth + 1))
                                 
                                 # Check for parameters
                                     self.params_found.append(full_url)
@@ -86,8 +97,17 @@ class WebCrawler:
                                 query = "&".join([f"{name}=FUZZ" for name in input_names])
                                 self.params_found.append(f"{action}?{query}")
 
-            except:
-                pass
+                except Exception:
+                    pass
+                finally:
+                    queue.task_done()
+
+        # Scale workers based on network needs (e.g., 20 parallel crawl tasks)
+        workers = [asyncio.create_task(worker()) for _ in range(20)]
+        await queue.join()
+        
+        for w in workers:
+            w.cancel()
         
         return list(set(self.params_found))
 
@@ -113,7 +133,7 @@ class WebCrawler:
             async with session.get(sitemap_url, timeout=5) as response:
                 if response.status == 200:
                     content = await response.text()
-                    soup = BeautifulSoup(content, 'xml')
+                    soup = await asyncio.to_thread(BeautifulSoup, content, 'xml')
                     for loc in soup.find_all('loc'):
                         self.params_found.append(loc.text.strip())
         except:

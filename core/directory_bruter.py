@@ -58,12 +58,12 @@ class DirectoryBruter(QObject):
                 fake_url1 = f"{base_url}this-path-does-not-exist-{filler1}"
                 fake_url2 = f"{base_url}this-path-does-not-exist-{filler2}"
                 
-                async with self.session.get(fake_url1, timeout=5, allow_redirects=True) as r1:
+                async with self.session.get(fake_url1, timeout=5, allow_redirects=True, ssl=False) as r1:
                     content1 = await r1.read()
                     self.baseline_404_length = len(content1)
                     self.baseline_404_text = content1[:200].decode('utf-8', errors='ignore').strip()
                     
-                async with self.session.get(fake_url2, timeout=5, allow_redirects=True) as r2:
+                async with self.session.get(fake_url2, timeout=5, allow_redirects=True, ssl=False) as r2:
                     content2 = await r2.read()
                     self.baseline_variance = abs(len(content2) - len(content1))
                     
@@ -85,7 +85,7 @@ class DirectoryBruter(QObject):
         target = base_url + path
         try:
             # HEAD request often faster, but GET more reliable for some servers blocking HEAD
-            async with self.session.get(target, timeout=5, allow_redirects=False) as r:
+            async with self.session.get(target, timeout=5, allow_redirects=False, ssl=False) as r:
                 # 200 OK is usually a hit
                 # 301/302 might be a hit (redirect to login)
                 # 403 Forbidden means it exists but is protected (still a finding!)
@@ -155,7 +155,7 @@ class DirectoryBruter(QObject):
         
         for headers in bypass_headers:
              try:
-                 async with self.session.get(url, headers=headers, timeout=5, allow_redirects=False) as r:
+                 async with self.session.get(url, headers=headers, timeout=5, allow_redirects=False, ssl=False) as r:
                      if r.status == 200:
                          header_name = list(headers.keys())[0]
                          self._report_finding(url, f"BYPASS SUCCESS (Header: {header_name})", severity="CRITICAL")
@@ -199,7 +199,7 @@ class DirectoryBruter(QObject):
         
         for var in variations:
             try:
-                async with self.session.get(var, timeout=5, allow_redirects=False) as r:
+                async with self.session.get(var, timeout=5, allow_redirects=False, ssl=False) as r:
                     if r.status == 200:
                         self._report_finding(url, f"BYPASS SUCCESS (Path: {var})", severity="CRITICAL")
                         self.log_message.emit(f"<span style='color:#00ff00'>[!!!] BYPASS SUCCESS! {url} -> 200 OK (via Path: {var})</span>")
@@ -210,7 +210,7 @@ class DirectoryBruter(QObject):
         # Sometimes ACLs only block GET
         for method in ['POST', 'TRACE', 'HEAD', 'PUT']:
              try:
-                 async with self.session.request(method, url, timeout=5, allow_redirects=False) as r:
+                 async with self.session.request(method, url, timeout=5, allow_redirects=False, ssl=False) as r:
                      if r.status == 200 and len(await r.read()) > 0:
                          self._report_finding(url, f"BYPASS SUCCESS (Method: {method})", severity="CRITICAL")
                          self.log_message.emit(f"<span style='color:#00ff00'>[!!!] BYPASS SUCCESS! {url} -> 200 OK (via {method})</span>")

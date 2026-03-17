@@ -43,6 +43,7 @@ class Vulnerability:
     impact: str
     cvss_score: float = 0.0
     remediation: str = ""
+    comando_direto: str = ""
     timestamp: datetime = field(default_factory=datetime.now)
 
     def __post_init__(self):

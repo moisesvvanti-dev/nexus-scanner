@@ -305,10 +305,13 @@ class NetworkAnalyzerWidget(QWidget):
         try:
             text = json.dumps(self.analysis_results, indent=2)
             clipboard = QApplication.clipboard()
-            clipboard.setText(text)
-            QMessageBox.information(self, "Copied", "JSON Results copied to clipboard")
+            try:
+                clipboard.setText(text)
+                QMessageBox.information(self, "Copied", "JSON Results copied to clipboard")
+            except Exception as clip_e:
+                 QMessageBox.warning(self, "Clipboard Error", f"Clipboard locked by OS: {clip_e}")
         except Exception as e:
-            QMessageBox.critical(self, "Error", f"Failed to copy: {str(e)}")
+            QMessageBox.critical(self, "Error", f"Failed to format: {str(e)}")
 
     @Slot()
     def save_results(self):

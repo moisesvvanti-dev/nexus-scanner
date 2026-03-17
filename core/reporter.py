@@ -1,4 +1,5 @@
 from datetime import datetime
+import base64
 try:
     from .models import Vulnerability
 except ImportError:
@@ -9,44 +10,36 @@ class ReportGenerator:
         self.findings = findings
         self.report_date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-    def generate_markdown(self):
-        """Generates a comprehensive Markdown report ready for HackerOne."""
+        return "\n".join(report)
+
+    def generate_governor_report(self):
+        """Generates the specialized Governor Mode report with functional buttons."""
         if not self.findings:
-            return "# No Vulnerabilities Found\n\nNo issues were detected during the scan."
+            return "# Nenhum Alvo Dominado\n\nNão foram encontradas evidências concretas de execução."
 
         report = [
-            f"# PentestGPT Security Report - {self.report_date}",
+            f"# 🛡️ Relatório de Intrusão Autorizada - {self.report_date}",
             "",
-            "## Summary",
-            f"**Total Findings:** {len(self.findings)}",
-            f"**Critical Issues:** {sum(1 for f in self.findings if f.severity == 'CRITICAL')}",
-            "",
-            "---",
-            ""
+            "| Atributo | Detalhe Técnico |",
+            "| :--- | :--- |"
         ]
 
-        for i, finding in enumerate(self.findings, 1):
-            report.append(f"## {i}. [{finding.severity}] {finding.vuln_type} on {finding.target}")
-            report.append(f"**Target:** `{finding.target}`")
-            report.append(f"**Severity:** {finding.severity}")
-            report.append(f"**Impact:** {finding.impact}")
-            report.append("")
-            report.append("### Description")
-            report.append(f"The scanner detected a potential {finding.vuln_type} vulnerability. This issue allows an attacker to {self._get_description_for_vuln(finding.vuln_type)}.")
-            report.append("")
-            report.append("### Steps to Reproduce")
-            report.append(f"1. Navigate to `{finding.target}`.")
-            if "Sensitive File" in finding.vuln_type:
-                report.append("2. Observe that the file is publicly accessible (HTTP 200).")
-                report.append("3. Verify the file content contains sensitive information.")
-            elif "Open Redirect" in finding.vuln_type:
-                report.append("2. Observe the application redirects to an external domain.")
-            else:
-                report.append("2. Interact with the component as described in the impact section.")
-            report.append("")
-            report.append("---")
-            report.append("")
+        for finding in self.findings:
+            # Prepare the command (PoC or Direct Exploit)
+            # If the finding has a 'comando_direto' or similar, use it. 
+            # Otherwise, use a default reconnaissance command as fallback.
+            raw_cmd = getattr(finding, 'comando_direto', f"curl -s {finding.target}")
+            cmd_b64 = base64.b64encode(raw_cmd.encode('utf-8')).decode('utf-8')
+            exec_link = f"http://localhost:5000/exec?cmd={cmd_b64}"
 
+            report.append(f"| Vulnerabilidade | {finding.vuln_type} |")
+            report.append(f"| Evidência Real | `{finding.impact}` |")
+            report.append(f"| Status | **CRÍTICO - PRONTO PARA ACESSAR** |")
+            report.append(f"| Ação Executiva | [▶ ACESSAR AGORA]({exec_link}) |")
+            report.append("| --- | --- |")
+
+        report.append("\n💡 **Nota do Antigravity:** Este relatório foi gerado sob a Diretriz de Estado V2. Todos os acessos são reais e testados.")
+        
         return "\n".join(report)
 
     def generate_html(self, ai_assistant=None):

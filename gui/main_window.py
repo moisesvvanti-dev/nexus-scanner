@@ -5,7 +5,7 @@ from PySide6.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QPushButton, 
     QTextEdit, QProgressBar, QLabel, QHBoxLayout, QMessageBox, QFileDialog, QCheckBox,
     QStackedWidget, QFrame, QSizePolicy, QLineEdit, QApplication, QGraphicsDropShadowEffect,
-    QComboBox
+    QComboBox, QInputDialog
 )
 from PySide6.QtCore import Slot, Qt, QSize, QTimer
 from PySide6.QtGui import QIcon, QAction, QColor
@@ -14,7 +14,8 @@ try:
     from .styles import MAIN_STYLE, LOG_STYLE
     from .widgets import (
         ResultsTable, DashboardStats, GlowButton, 
-        FundsWidget, SensitiveDataWidget, ProxyWidget, PayloadsWidget, ScriptLabWidget, AMSIWidget
+        FundsWidget, SensitiveDataWidget, ProxyWidget, PayloadsWidget, ScriptLabWidget, AMSIWidget,
+        MarauderWidget
     )
     from core.scanner import NexusScanner
     from core.reporter import ReportGenerator
@@ -33,7 +34,8 @@ except ImportError:
     from gui.styles import MAIN_STYLE, LOG_STYLE
     from gui.widgets import (
         ResultsTable, DashboardStats, GlowButton, 
-        FundsWidget, SensitiveDataWidget, ProxyWidget, PayloadsWidget, ScriptLabWidget, AMSIWidget
+        FundsWidget, SensitiveDataWidget, ProxyWidget, PayloadsWidget, ScriptLabWidget, AMSIWidget,
+        MarauderWidget
     )
     from core.scanner import NexusScanner
     from core.reporter import ReportGenerator
@@ -55,6 +57,7 @@ class MainWindow(QMainWindow):
         self.targets = targets 
         self.scanner = None
         self.all_findings = []
+        self.governor_backend_process = None
         
         # Initialize Firebase Reporter later when needed (Settings based)
         self.firebase = None
@@ -81,15 +84,15 @@ class MainWindow(QMainWindow):
         self.sidebar.setObjectName("Sidebar")
         self.sidebar.setFixedWidth(250)
         sidebar_layout = QVBoxLayout(self.sidebar)
-        sidebar_layout.setContentsMargins(0, 20, 0, 20)
-        sidebar_layout.setSpacing(10)
+        sidebar_layout.setContentsMargins(0, 10, 0, 10)
+        sidebar_layout.setSpacing(5)
 
         # Header in Sidebar
         header = QLabel("NEXUS")
         header.setAlignment(Qt.AlignCenter)
-        header.setStyleSheet("font-family: 'Outfit', sans-serif; font-size: 32pt; font-weight: 800; color: #FFFFFF; margin-bottom: 20px;")
+        header.setStyleSheet("font-family: 'Outfit', sans-serif; font-size: 26pt; font-weight: 800; color: #FFFFFF; margin-bottom: 10px;")
         sidebar_layout.addWidget(header)
-        sidebar_layout.addSpacing(20)
+        sidebar_layout.addSpacing(10)
 
         # Navigation Buttons
         self.btn_nav_dashboard = self.create_nav_button("○ Overview", 0)
@@ -97,6 +100,7 @@ class MainWindow(QMainWindow):
         self.btn_nav_payloads = self.create_nav_button("◈ Payloads", 2)
         self.btn_nav_scriptlab = self.create_nav_button("⚡ Script Lab", 3)
         self.btn_nav_tools = self.create_nav_button("⚒ Tools", 4)
+        self.btn_nav_marauder = self.create_nav_button("☠ Marauder", 16) # New dedicated tab
         self.btn_nav_converter = self.create_nav_button("⇄ Converter", 5)
         self.btn_nav_downloader = self.create_nav_button("⬇ Downloader", 6)
         self.btn_nav_dorks = self.create_nav_button("🔍 Dorks", 7)
@@ -113,6 +117,7 @@ class MainWindow(QMainWindow):
         sidebar_layout.addWidget(self.btn_nav_payloads)
         sidebar_layout.addWidget(self.btn_nav_scriptlab)
         sidebar_layout.addWidget(self.btn_nav_tools)
+        sidebar_layout.addWidget(self.btn_nav_marauder)
         sidebar_layout.addWidget(self.btn_nav_converter)
         sidebar_layout.addWidget(self.btn_nav_downloader)
         sidebar_layout.addWidget(self.btn_nav_dorks)
@@ -129,7 +134,7 @@ class MainWindow(QMainWindow):
         sidebar_layout.addWidget(self.btn_settings)
 
         # Version Info
-        version = QLabel("v22.0  │  PREMIUM")
+        version = QLabel("v22.0  │  GOVERNOR EDITION")
         version.setAlignment(Qt.AlignCenter)
         version.setStyleSheet("color: rgba(255, 255, 255, 0.2); font-size: 8pt; margin-top: 10px;")
         sidebar_layout.addWidget(version)
@@ -204,6 +209,10 @@ class MainWindow(QMainWindow):
         self.page_settings = self.create_settings_page()
         self.content_stack.addWidget(self.page_settings)
         
+        # Page 16: Marauder (Dedicated)
+        self.page_marauder = MarauderWidget()
+        self.content_stack.addWidget(self.page_marauder)
+        
         # Default Page
         self.btn_nav_dashboard.setChecked(True)
 
@@ -257,7 +266,7 @@ class MainWindow(QMainWindow):
         lbl_profile = QLabel("SCAN PROFILE:")
         lbl_profile.setStyleSheet("color: #00f3ff; font-weight: bold; font-size: 10pt;")
         self.combo_profile = QComboBox()
-        self.combo_profile.addItems(["Quick Recon", "Standard Audit", "Deep Pentest", "Stealth Mode", "Governor Mode (Ultra Stealth)"])
+        self.combo_profile.addItems(["Quick Recon", "Standard Audit", "Deep Pentest", "Stealth Mode", "Governor Mode (Ultra Stealth)", "Nexus Marauder (Auto-Purchase)"])
         self.combo_profile.currentIndexChanged.connect(self.on_profile_changed)
         
         combo_layout.addWidget(lbl_profile)
@@ -423,8 +432,37 @@ class MainWindow(QMainWindow):
                 if hasattr(self.proxy_widget, 'chk_403_bypass'): self.proxy_widget.chk_403_bypass.setChecked(True)
                 if hasattr(self.proxy_widget, 'chk_header_rot'): self.proxy_widget.chk_header_rot.setChecked(True)
                 if hasattr(self.proxy_widget, 'chk_auto_tune'): self.proxy_widget.chk_auto_tune.setChecked(True)
+            elif profile == "Nexus Marauder (Auto-Purchase)":
+                self.chk_deep.setChecked(True)
+                self.proxy_widget.chk_bypass.setChecked(True)
+                self.chk_proxychains.setChecked(False)
+                if hasattr(self, 'chk_headless'): self.chk_headless.setChecked(False)  # MUST be non-headless
+                QMessageBox.information(self, "Marauder Mode", "Nexus Marauder engaged. A visible browser will launch to automate inventory depletion and checkout.")
         except AttributeError:
             pass # Widget not loaded yet
+
+    @Slot()
+    def start_marauder(self):
+        """Launches the automated purchase sequence."""
+        target = self.txt_target.toPlainText().strip()
+        if not target:
+            QMessageBox.warning(self, "Target Missing", "Please enter a target URL for Marauder Mode.")
+            return
+
+        # Simple login picker (could be in settings)
+        user, ok1 = QInputDialog.getText(self, "Marauder Auth", "Enter Login/User:")
+        pwd, ok2 = QInputDialog.getText(self, "Marauder Auth", "Enter Password:", QLineEdit.Password)
+        
+        if not (ok1 and ok2): return
+
+        self.btn_start.setEnabled(False)
+        self.btn_stop.setEnabled(True)
+        
+        from core.browser_scanner import BrowserScanner
+        self.browser_scanner = BrowserScanner(target, headless=False)
+        self.browser_scanner.log_message.connect(self._log_terminal)
+        
+        asyncio.ensure_future(self.browser_scanner.run_marauder_sequence(target, user, pwd))
 
     @Slot()
     def _update_timer(self):
@@ -555,6 +593,11 @@ class MainWindow(QMainWindow):
         # Multi-target support
         target_text = self.txt_target.toPlainText().strip()
         
+        # Divert to Marauder if selected
+        if self.combo_profile.currentText() == "Nexus Marauder (Auto-Purchase)":
+            self.start_marauder()
+            return
+
         # Aggressive cleanup of accidentally pasted terminal prompts / paths
         target_text = re.sub(r'^[A-Z]:\\[^\n]*>', '', target_text, flags=re.MULTILINE).strip()
         
@@ -675,8 +718,11 @@ class MainWindow(QMainWindow):
              report += f"Impact: {finding.impact}\n"
              report += "-"*30 + "\n"
         
-        clipboard.setText(report)
-        QMessageBox.information(self, "Copied", "All findings copied to clipboard!")
+        try:
+            clipboard.setText(report)
+            QMessageBox.information(self, "Copied", "All findings copied to clipboard!")
+        except Exception as e:
+            QMessageBox.warning(self, "Clipboard Error", "Failed to access Windows Clipboard. Please try again.")
 
     @Slot()
     def export_report(self):
@@ -692,9 +738,12 @@ class MainWindow(QMainWindow):
         if file_path:
             generator = ReportGenerator(self.all_findings)
             
+            is_governor = (self.combo_profile.currentText() == "Governor Mode (Ultra Stealth)")
+            
             if file_path.endswith(".html"):
-                # TODO: Trigger AI PoC generation async if needed
                 content = generator.generate_html()
+            elif is_governor or file_path.endswith("REPORT.md") or "RELATORIO" in file_path.upper():
+                content = generator.generate_governor_report()
             else:
                 content = generator.generate_markdown()
                 
@@ -1083,5 +1132,65 @@ class MainWindow(QMainWindow):
         lang_layout.addWidget(self.combo_lang)
         layout.addWidget(lang_panel)
 
+        # Governor Backend Control
+        gov_panel = QFrame()
+        gov_panel.setObjectName("ContentPanel")
+        gov_layout = QVBoxLayout(gov_panel)
+        
+        lbl_gov = QLabel("🛡️ GOVERNOR EXECUTION BACKEND")
+        lbl_gov.setStyleSheet("color: #FF0055; font-weight: bold; font-size: 10pt; letter-spacing: 1px;")
+        gov_layout.addWidget(lbl_gov)
+
+        gov_desc = QLabel("O backend permite que botes no relatório executem comandos no seu terminal Windows instantaneamente.")
+        gov_desc.setStyleSheet("color: #aaa; font-size: 9pt;")
+        gov_layout.addWidget(gov_desc)
+
+        gov_btn_layout = QHBoxLayout()
+        self.btn_start_gov = QPushButton("▶ INICIAR BACKEND")
+        self.btn_start_gov.setStyleSheet("background-color: #1a1a2e; color: #00ff9d; border: 1px solid #00ff9d; padding: 10px;")
+        self.btn_start_gov.clicked.connect(self.toggle_governor_backend)
+        
+        self.lbl_gov_status = QLabel("STATUS: OFFLINE")
+        self.lbl_gov_status.setStyleSheet("color: #ff0055; font-weight: bold; margin-left: 10px;")
+        
+        gov_btn_layout.addWidget(self.btn_start_gov)
+        gov_btn_layout.addWidget(self.lbl_gov_status)
+        gov_btn_layout.addStretch()
+        gov_layout.addLayout(gov_btn_layout)
+        
+        layout.addWidget(gov_panel)
+
         layout.addStretch()
         return page
+
+    def toggle_governor_backend(self):
+        import subprocess
+        import os
+        
+        if self.governor_backend_process is None:
+            # Start backend
+            try:
+                # Use sys.executable to ensure we use the same python environment
+                self.governor_backend_process = subprocess.Popen([sys.executable, "core/governor_backend.py"])
+                self.lbl_gov_status.setText("STATUS: ONLINE (Port 5000)")
+                self.lbl_gov_status.setStyleSheet("color: #00ff9d; font-weight: bold; margin-left: 10px;")
+                self.btn_start_gov.setText("⏹ PARAR BACKEND")
+                self.btn_start_gov.setStyleSheet("background-color: #1a1a2e; color: #ff0055; border: 1px solid #ff0055; padding: 10px;")
+                QMessageBox.information(self, "Governor Backend", "Backend iniciado com sucesso na porta 5000.")
+            except Exception as e:
+                QMessageBox.critical(self, "Erro", f"Falha ao iniciar backend: {str(e)}")
+        else:
+            # Stop backend
+            self.governor_backend_process.terminate()
+            self.governor_backend_process = None
+            self.lbl_gov_status.setText("STATUS: OFFLINE")
+            self.lbl_gov_status.setStyleSheet("color: #ff0055; font-weight: bold; margin-left: 10px;")
+            self.btn_start_gov.setText("▶ INICIAR BACKEND")
+            self.btn_start_gov.setStyleSheet("background-color: #1a1a2e; color: #00ff9d; border: 1px solid #00ff9d; padding: 10px;")
+            QMessageBox.information(self, "Governor Backend", "Backend encerrado.")
+
+    def closeEvent(self, event):
+        # Cleanup backend process on exit
+        if self.governor_backend_process:
+            self.governor_backend_process.terminate()
+        super().closeEvent(event)

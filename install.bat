@@ -1,65 +1,39 @@
 @echo off
-setlocal
-title [NEXUS ULTIMA] - Dependency Auto-Installer v21.0
-color 0a
-
-echo =======================================================
-echo          PENTESTGPT - NEXUS ULTIMA INSTALLER
-echo =======================================================
-echo.
-echo [!] Iniciando a instalacao REAL das dependencias do sistema...
-echo [!] Por favor, aguarde. Este processo ira baixar as bibliotecas pesadas.
-echo.
-
-:: 1. Checagem do Python e PIP
-python --version >nul 2>&1
-if %errorlevel% neq 0 (
-    color 0c
-    echo [ERROR] O Python 3 nao foi encontrado no seu sistema.
-    echo [!] Instale o Python 3.10+ e marque a caixa "Add Python to PATH".
-    pause
-    exit /b
-)
-
-echo [*] Atualizando o construtor global (PIP)...
-python -m pip install --upgrade pip >nul 2>&1
-
-:: 2. Instalacao das Bibliotecas no requirements.txt
-if exist "requirements.txt" (
-    echo [*] Lendo e instalando modulos de rede, interface e motores assincronos...
-    echo [*] (Isso PODE DEMORAR alguns minutos dependendo da sua internet)
-    echo.
-    python -m pip install -r requirements.txt
-    
-    if %errorlevel% neq 0 (
-        color 0e
-        echo.
-        echo [WARNING] Ocorreram alguns avisos durante o download.
-        echo [!] Verifique acima se houve falha critica de conectividade.
-    ) else (
-        echo.
-        echo [+] Modulos principais instalados com sucesso no seu Python!
-    )
+title Reparador de Execucao CyberStrikeAI - Automatico
+:: Verifica se esta rodando como administrador
+net session >nul 2>&1
+if %errorLevel% == 0 (
+    echo [OK] Rodando com privilegios de Administrador.
 ) else (
-    color 0c
-    echo [ERROR] Arquivo "requirements.txt" nao foi encontrado na pasta atual!
+    echo [ERRO] Por favor, execute este script como ADMINISTRADOR.
     pause
-    exit /b
+    exit
 )
 
-:: 3. Instalacao do Motor Fantasma (Playwright)
-echo.
-echo [*] Configurando os binarios do navegador Headless invisivel (Playwright)...
-python -m playwright install --with-deps >nul 2>&1
-echo [+] Arquitetura invisivel Phantom do browser acoplada.
+echo ------------------------------------------------------
+echo INICIANDO REPARO DE COMPATIBILIDADE E PERMISSOES
+echo ------------------------------------------------------
 
-echo.
-echo =======================================================
-echo [+] Installation Completed Successfully!
-echo [+] O seu Arsenal Nexus V21 esta pronto para operar.
-echo =======================================================
-echo.
-echo - Para iniciar a interface grafica agora, feche esta janela 
-echo   e execute o comando: python main.py
-echo.
+echo [1/5] Desbloqueando arquivos na pasta atual...
+powershell -Command "Get-ChildItem -Recurse | Unblock-File"
+
+echo [2/5] Resetando permissoes de acesso total (ACLs)...
+icacls . /grant Todos:(OI)(CI)F /T /C
+
+echo [3/5] Corrigindo arquivos de sistema corrompidos (SFC)...
+sfc /scannow
+
+echo [4/5] Reparando a imagem do Windows (DISM)...
+dism /online /cleanup-image /restorehealth
+
+echo [5/5] Limpando cache do Windows Store e Execucao...
+wsreset.exe
+
+echo ------------------------------------------------------
+echo VERIFICACAO DE ARQUITETURA:
+systeminfo | findstr /C:"Tipo de sistema"
+echo Se aparecer 'x86-based PC' e seu programa for 64-bits, ele NUNCA vai rodar.
+echo Se aparecer 'x64-based PC', o erro deve estar resolvido.
+echo ------------------------------------------------------
+echo REPARO CONCLUIDO! Tente rodar o programa agora.
 pause

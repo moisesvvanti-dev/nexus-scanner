@@ -870,9 +870,13 @@ class DorkWidget(QWidget):
             target = target.replace("https://", "").replace("http://", "").split('/')[0]
             query = query.replace("{target}", target)
         clipboard = QApplication.clipboard()
-        clipboard.setText(query)
-        self.lbl_status.setText(f"📋 Copied: {query[:80]}...")
-        self.lbl_status.setStyleSheet("color: #00ff9d; font-size: 8pt;")
+        try:
+            clipboard.setText(query)
+            self.lbl_status.setText(f"📋 Copied: {query[:80]}...")
+            self.lbl_status.setStyleSheet("color: #00ff9d; font-size: 8pt;")
+        except Exception:
+            self.lbl_status.setText("⚠️ Failed to access clipboard.")
+            self.lbl_status.setStyleSheet("color: #ffaa00; font-size: 8pt;")
 
     def copy_all_dorks(self):
         target = self.txt_target.text().strip()
@@ -890,9 +894,13 @@ class DorkWidget(QWidget):
         
         if all_dorks:
             clipboard = QApplication.clipboard()
-            clipboard.setText("\n".join(all_dorks))
-            self.lbl_status.setText(f"📋 Copied {len(all_dorks)} dorks to clipboard!")
-            self.lbl_status.setStyleSheet("color: #00ff9d; font-size: 8pt;")
+            try:
+                clipboard.setText("\n".join(all_dorks))
+                self.lbl_status.setText(f"📋 Copied {len(all_dorks)} dorks to clipboard!")
+                self.lbl_status.setStyleSheet("color: #00ff9d; font-size: 8pt;")
+            except Exception:
+                self.lbl_status.setText("⚠️ Failed to access clipboard.")
+                self.lbl_status.setStyleSheet("color: #ffaa00; font-size: 8pt;")
 
     def copy_hits_only(self):
         """Copy only dorks that had ✅ HIT FOUND."""
@@ -912,9 +920,13 @@ class DorkWidget(QWidget):
         
         if hits:
             clipboard = QApplication.clipboard()
-            clipboard.setText("\n".join(hits))
-            self.lbl_status.setText(f"📋 Copied {len(hits)} HIT dorks to clipboard!")
-            self.lbl_status.setStyleSheet("color: #00ff9d; font-size: 8pt;")
+            try:
+                clipboard.setText("\n".join(hits))
+                self.lbl_status.setText(f"📋 Copied {len(hits)} HIT dorks to clipboard!")
+                self.lbl_status.setStyleSheet("color: #00ff9d; font-size: 8pt;")
+            except Exception:
+                 self.lbl_status.setText("⚠️ Failed to access clipboard.")
+                 self.lbl_status.setStyleSheet("color: #ffaa00; font-size: 8pt;")
         else:
             self.lbl_status.setText("⚠️ No hits found yet. Run Auto-Analyze first.")
             self.lbl_status.setStyleSheet("color: #ff5555; font-size: 8pt;")

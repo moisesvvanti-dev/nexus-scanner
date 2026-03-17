@@ -402,11 +402,12 @@ class ProxyWidget(QFrame):
 class ResultsTable(QTableWidget):
     def __init__(self):
         super().__init__()
-        self.setColumnCount(4)
-        self.setHorizontalHeaderLabels(["SEV", "VULNERABILITY TYPE", "TARGET", "IMPACT / DETAILS"])
+        self.setColumnCount(5)
+        self.setHorizontalHeaderLabels(["SEV", "VULNERABILITY TYPE", "TARGET", "IMPACT / DETAILS", "AÇÃO"])
         self.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeToContents)
         self.horizontalHeader().setSectionResizeMode(2, QHeaderView.Stretch)
         self.horizontalHeader().setSectionResizeMode(3, QHeaderView.Stretch)
+        self.horizontalHeader().setSectionResizeMode(4, QHeaderView.ResizeToContents)
         self.verticalHeader().setVisible(False)
         self.setAlternatingRowColors(True)
         self.setEditTriggers(QTableWidget.NoEditTriggers)
@@ -441,6 +442,36 @@ class ResultsTable(QTableWidget):
         self.setItem(row, 2, QTableWidgetItem(finding.target))
         self.setItem(row, 3, QTableWidgetItem(finding.impact))
 
+        if hasattr(finding, 'comando_direto') and finding.comando_direto:
+            btn = QPushButton("▶ ACESSAR FALHA")
+            btn.setStyleSheet("""
+                QPushButton {
+                    background-color: #ff0055;
+                    color: white;
+                    font-weight: bold;
+                    border-radius: 4px;
+                    padding: 4px 12px;
+                }
+                QPushButton:hover {
+                    background-color: #ff3377;
+                }
+            """)
+            btn.setCursor(Qt.PointingHandCursor)
+            cmd = finding.comando_direto
+            btn.clicked.connect(lambda checked=False, command=cmd: self._execute_direct_command(command))
+            self.setCellWidget(row, 4, btn)
+        else:
+            # Placeholder se não houver comando
+            no_cmd_item = QTableWidgetItem("-")
+            no_cmd_item.setTextAlignment(Qt.AlignCenter)
+            self.setItem(row, 4, no_cmd_item)
+
+    def _execute_direct_command(self, cmd):
+        import subprocess
+        try:
+            subprocess.Popen(['cmd.exe', '/c', 'start', 'cmd.exe', '/k', cmd])
+        except Exception as e:
+            print(f"Error executing command: {e}")
 
 class PayloadsWidget(QWidget):
     """Panel that collects and displays AI-generated payloads for easy copying."""
@@ -576,7 +607,10 @@ class PayloadsWidget(QWidget):
     def _copy_single(self, script):
         from PySide6.QtWidgets import QApplication
         clipboard = QApplication.clipboard()
-        clipboard.setText(script)
+        try:
+            clipboard.setText(script)
+        except Exception as e:
+            print(f"Clipboard error: {e}")
 
     def copy_all(self):
         if not self.payloads:
@@ -586,7 +620,10 @@ class PayloadsWidget(QWidget):
         all_text = ""
         for url, script, ts in self.payloads:
             all_text += f"// === [{ts}] {url} ===\n{script}\n\n"
-        clipboard.setText(all_text)
+        try:
+            clipboard.setText(all_text)
+        except Exception as e:
+            print(f"Clipboard error: {e}")
 
     def clear_all(self):
         self.payloads.clear()
@@ -963,9 +1000,13 @@ class ScriptLabWidget(QWidget):
         text = self.txt_output.toPlainText()
         if text:
             from PySide6.QtWidgets import QApplication
-            QApplication.clipboard().setText(text)
-            self.lbl_status.setText("✅ Copied to clipboard!")
-            self.lbl_status.setStyleSheet("color: #00ff9d; font-size: 8pt;")
+            try:
+                QApplication.clipboard().setText(text)
+                self.lbl_status.setText("✅ Copied to clipboard!")
+                self.lbl_status.setStyleSheet("color: #00ff9d; font-size: 8pt;")
+            except Exception as e:
+                self.lbl_status.setText("⚠️ Clipboard locked by OS.")
+                self.lbl_status.setStyleSheet("color: #ffaa00; font-size: 8pt;")
 
     def _clear_all(self):
         self.txt_audit_input.clear()
@@ -1105,4 +1146,177 @@ class AMSIWidget(QWidget):
                 
         future = asyncio.ensure_future(_probe())
         future.add_done_callback(_done)
+
+
+class MarauderWidget(QFrame):
+    """
+    Dedicated widget for Nexus Marauder (Automated Purchase & CVV Handling).
+    Provides a separate interface for inventory depletion and secure checkout.
+    """
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setStyleSheet("QFrame { background-color: rgba(15, 20, 25, 0.7); border-radius: 12px; }")
+        self.scanner = None
+        self.init_ui()
+
+    def init_ui(self):
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(20, 20, 20, 20)
+        layout.setSpacing(15)
+
+        title = QLabel("☠ NEXUS MARAUDER: INVENTORY DEPLETION SUITE")
+        title.setStyleSheet("color: #ff0055; font-size: 16pt; font-weight: 800; letter-spacing: 2px;")
+        layout.addWidget(title)
+        
+        desc = QLabel("Escalate access from login to automated checkout. Optimized for high-value asset depletion.")
+        desc.setStyleSheet("color: #888; font-size: 10pt; margin-bottom: 10px;")
+        layout.addWidget(desc)
+
+        # Inputs Grid
+        input_grid = QVBoxLayout()
+        input_grid.setSpacing(10)
+
+        self.txt_url = self._create_input("TARGET URL:", "https://target-store.com/login")
+        self.txt_product = self._create_input("TARGET PRODUCT (HUNT):", "iPhone 17 Pro Max")
+        self.txt_user = self._create_input("USERNAME / EMAIL:", "admin@target.com")
+        self.txt_pass = self._create_input("PASSWORD:", "********", is_password=True)
+        self.txt_bypass_email = self._create_input("BYPASS REDIRECT EMAIL:", "your-hacker-mail@mail.com")
+        
+        # Payment Row
+        payment_title = QLabel("💳 PAYMENT INSTRUMENT (SECURE INJECTION)")
+        payment_title.setStyleSheet("color: #00ff9d; font-weight: bold; margin-top: 10px;")
+        layout.addWidget(payment_title)
+
+        self.txt_card = self._create_input("CARD NUMBER:", "4111 1111 1111 1111")
+        
+        expiry_cvv = QHBoxLayout()
+        self.txt_expiry = self._create_input("EXPIRY (MM/YY):", "12/26")
+        self.txt_cvv = self._create_input("CVV / CVC:", "XXX")
+        expiry_cvv.addWidget(self.txt_expiry)
+        expiry_cvv.addWidget(self.txt_cvv)
+
+        layout.addLayout(input_grid)
+        layout.addWidget(self.txt_url)
+        layout.addWidget(self.txt_product)
+        layout.addWidget(self.txt_user)
+        layout.addWidget(self.txt_pass)
+        layout.addWidget(self.txt_bypass_email)
+        layout.addWidget(self.txt_card)
+        layout.addLayout(expiry_cvv)
+
+        # Automation Status
+        self.txt_log = QTextEdit()
+        self.txt_log.setReadOnly(True)
+        self.txt_log.setPlaceholderText("AUTOMATION LOG: Waiting for engagement...")
+        self.txt_log.setStyleSheet("""
+            QTextEdit {
+                background-color: #050505;
+                color: #ff0055;
+                font-family: 'Consolas', monospace;
+                border: 1px solid #333;
+                border-radius: 4px;
+                padding: 10px;
+            }
+        """)
+        layout.addWidget(self.txt_log, 1)
+
+        # Engagement Buttons
+        btn_layout = QHBoxLayout()
+        self.btn_engage = GlowButton("☠ ENGAGE MARAUDER", "#ff0055")
+        self.btn_engage.setMinimumHeight(50)
+        self.btn_engage.clicked.connect(self._start_sequence)
+        
+        self.btn_abort = GlowButton("ABORT", "#aaaaaa")
+        self.btn_abort.setMinimumHeight(50)
+        self.btn_abort.setEnabled(False)
+        self.btn_abort.clicked.connect(self._abort_sequence)
+        
+        btn_layout.addWidget(self.btn_engage, 2)
+        btn_layout.addWidget(self.btn_abort, 1)
+        layout.addLayout(btn_layout)
+
+    def _create_input(self, label_text, placeholder, is_password=False):
+        container = QWidget()
+        lay = QVBoxLayout(container)
+        lay.setContentsMargins(0, 0, 0, 0)
+        lay.setSpacing(5)
+        
+        lbl = QLabel(label_text)
+        lbl.setStyleSheet("color: #00f3ff; font-weight: bold; font-size: 8pt;")
+        
+        edit = QLineEdit()
+        edit.setPlaceholderText(placeholder)
+        if is_password: edit.setEchoMode(QLineEdit.Password)
+        edit.setStyleSheet("""
+            QLineEdit {
+                background-color: rgba(255, 255, 255, 0.05);
+                color: white;
+                border: 1px solid #333;
+                border-radius: 4px;
+                padding: 10px;
+            }
+            QLineEdit:focus { border: 1px solid #ff0055; }
+        """)
+        lay.addWidget(lbl)
+        lay.addWidget(edit)
+        return container
+
+    def _start_sequence(self):
+        url = self.txt_url.findChildren(QLineEdit)[0].text().strip()
+        product = self.txt_product.findChildren(QLineEdit)[0].text().strip() or "iPhone 17 Pro Max"
+        user = self.txt_user.findChildren(QLineEdit)[0].text().strip()
+        pwd = self.txt_pass.findChildren(QLineEdit)[0].text().strip()
+        bypass_email = self.txt_bypass_email.findChildren(QLineEdit)[0].text().strip()
+        card = self.txt_card.findChildren(QLineEdit)[0].text().strip()
+        expiry = self.txt_expiry.findChildren(QLineEdit)[0].text().strip()
+        cvv = self.txt_cvv.findChildren(QLineEdit)[0].text().strip()
+
+        if not url:
+            self.txt_log.append("<span style='color:#ff5555'>[!] Target URL is required.</span>")
+            return
+
+        self.btn_engage.setEnabled(False)
+        self.btn_abort.setEnabled(True)
+        self.txt_log.append(f"<span style='color:#00f3ff'>[!] ENGAGING NEXUS MARAUDER: {url}</span>")
+
+        # Persistent Scanner Management
+        if not self.scanner:
+            from core.browser_scanner import BrowserScanner
+            self.scanner = BrowserScanner(url, headless=False)
+            self.scanner.log_message.connect(self._append_to_log)
+        
+        self.txt_log.append("<span style='color:#ff0055'>[*] Pre-flight configuration finalized. Initializing Engine...</span>")
+
+        async def _run():
+            try:
+                # Lazy Init: only start if closed or new url
+                if not self.scanner.page or self.scanner.target_url != url:
+                    if self.scanner.page: await self.scanner.close()
+                    self.scanner.target_url = url
+                    await self.scanner.initialize()
+                
+                await self.scanner.run_marauder_sequence(url, user, pwd, target_product=product, bypass_email=bypass_email)
+                await self.scanner._marauder_checkout(card, expiry, cvv)
+                self.txt_log.append("<span style='color:#00ff9d'>[Marauder] Depletion sequence finalized.</span>")
+            except Exception as e:
+                self.txt_log.append(f"<span style='color:#ff5555'>[!] Marauder Crash: {str(e)}</span>")
+            finally:
+                self.btn_engage.setEnabled(True)
+                self.btn_abort.setEnabled(False)
+
+        asyncio.ensure_future(_run())
+
+    def _abort_sequence(self):
+        """Forcefully kills the browser and stops the sequence."""
+        if self.scanner:
+            self.txt_log.append("<span style='color:#ffaa00'>[!] ABORTING: Closing browser instances...</span>")
+            asyncio.ensure_future(self.scanner.close())
+        self.btn_engage.setEnabled(True)
+        self.btn_abort.setEnabled(False)
+
+    def _append_to_log(self, msg):
+        # Handle HTML logs
+        self.txt_log.append(msg)
+        # Scroll to bottom
+        self.txt_log.verticalScrollBar().setValue(self.txt_log.verticalScrollBar().maximum())
 
