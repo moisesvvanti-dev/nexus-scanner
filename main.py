@@ -16,6 +16,15 @@ def main():
     loop = QEventLoop(app)
     asyncio.set_event_loop(loop)
     
+    # Custom exception handler to suppress noisy WinError 10054
+    def handle_exception(loop, context):
+        msg = context.get("exception", context["message"])
+        if isinstance(msg, ConnectionResetError):
+            return
+        loop.default_exception_handler(context)
+    
+    loop.set_exception_handler(handle_exception)
+    
     # Initialize with empty targets list, as user will input manually
     window = MainWindow([])
     window.show()
