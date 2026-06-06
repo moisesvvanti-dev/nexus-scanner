@@ -8,7 +8,6 @@ import time
 from typing import List, Dict, Any, Optional, Union
 from urllib.parse import urlparse, parse_qs, urlencode, urlunparse, urljoin
 from core.qt_compat import QObject, Signal
-import dns.resolver
 import tldextract
 import whois
 from bs4 import BeautifulSoup
@@ -20,19 +19,19 @@ try:
     from .enumerator import SubdomainEnumerator, UberRecon, HackerTargetEnumerator
     from .crawler import WebCrawler
     from .payloads import Payloads, Indicators
-    from .payloads import Payloads, Indicators
     from core.browser_scanner import BrowserScanner
     from .proxy_manager import ProxyManager
     from .dumper import CredentialDumper
+    from .external_tools import ExternalToolRunner
 except ImportError:
     from core.models import Vulnerability, Target
     from core.enumerator import SubdomainEnumerator, UberRecon, HackerTargetEnumerator
     from core.crawler import WebCrawler
     from core.payloads import Payloads, Indicators
-    from core.payloads import Payloads, Indicators
     from core.browser_scanner import BrowserScanner
     from core.proxy_manager import ProxyManager
     from core.dumper import CredentialDumper
+    from core.external_tools import ExternalToolRunner
 
 # Import CVEScanner globally (or handle import error properly if module missing)
 try:
@@ -516,9 +515,17 @@ class NexusScanner(QObject):
     async def check_takeover(self, domain):
          """Checks for Subdomain Takeover opportunities via CNAME analysis."""
          try:
-             answers = dns.resolver.resolve(domain, 'CNAME')
-             for rdata in answers:
-                 cname = rdata.target.to_text().rstrip('.')
+             import socket
+             try:
+                 hostname, aliases, _ = socket.gethostbyname_ex(domain)
+             except socket.gaierror:
+                 hostname, aliases = domain, []
+             
+             cnames = aliases
+             if hostname != domain and hostname not in cnames:
+                 cnames.append(hostname)
+                 
+             for cname in cnames:
                  
                  # Known Takeover Fingerprints
                  fingerprints = {
@@ -1174,8 +1181,11 @@ class NexusScanner(QObject):
         """Uses dnspython, tldextract, and whois for comprehensive recon."""
         try:
             # DNS Resolution
-            answers = dns.resolver.resolve(hostname, 'A')
-            ips = [r.to_text() for r in answers]
+            import socket
+            try:
+                _, _, ips = socket.gethostbyname_ex(hostname)
+            except socket.gaierror:
+                ips = []
             
             # TLD Extraction
             ext = tldextract.extract(hostname)
@@ -1910,6 +1920,9 @@ class NexusScanner(QObject):
                 cve_scanner.log_message.connect(self.log_message.emit)
                 await cve_scanner.scan(url)
                 
+                # External evidence-first scanners (WhatWeb fingerprinting + Nuclei templates)
+                await self._run_external_tool_scans(url)
+                
                 # Browser-Based Scan (Playwright)
                 try:
                     browser_scanner = BrowserScanner(
@@ -2084,6 +2097,39 @@ class NexusScanner(QObject):
                         self._emit_finding(vuln)
                         break # Successfully found and dumped
                 except: pass
+
+    async def _run_external_tool_scans(self, url):
+        """Run optional external scanners without simulating findings when missing."""
+        runner = ExternalToolRunner(rate_limit=20 if self.deep_scan else 10, timeout=180 if self.deep_scan else 90)
+
+        for tool_name in ("whatweb", "nuclei"):
+            check = runner.check_tool(tool_name)
+            if not check.available:
+                self.log_message.emit(f"<span style='color:#ffaa00'>{check.message}</span>")
+            else:
+                self.log_message.emit(f"<span style='color:#00f3ff'>[*] External tool ready: {check.message}</span>")
+
+        # WhatWeb is fingerprinting only; it creates INFO evidence for later CVE correlation.
+        whatweb_result = await runner.run_whatweb(url)
+        if whatweb_result.returncode == 127:
+            self.log_message.emit(f"<span style='color:#ffaa00'>{whatweb_result.stdout}</span>")
+        elif whatweb_result.returncode != 0:
+            self.log_message.emit(f"<span style='color:#ffaa00'>[FP ALERT] WhatWeb returned code {whatweb_result.returncode}; no fingerprint findings will be invented.</span>")
+        for finding in whatweb_result.findings or []:
+            self._emit_finding(finding)
+
+        # Nuclei can be noisy; run only in deep mode and trust only JSONL matches with matched-at evidence.
+        if not self.deep_scan:
+            self.log_message.emit("<span style='color:#aaa'>[info] Nuclei skipped in non-deep scan. Enable Deep Scan for template validation.</span>")
+            return
+
+        nuclei_result = await runner.run_nuclei(url)
+        if nuclei_result.returncode == 127:
+            self.log_message.emit(f"<span style='color:#ffaa00'>{nuclei_result.stdout}</span>")
+        elif nuclei_result.returncode != 0:
+            self.log_message.emit(f"<span style='color:#ffaa00'>[FP ALERT] Nuclei returned code {nuclei_result.returncode}; only parsed JSONL evidence, if any, is used.</span>")
+        for finding in nuclei_result.findings or []:
+            self._emit_finding(finding)
 
     # ==========================================
     # AUTOMATED INJECTION ENGINES

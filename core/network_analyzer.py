@@ -4,8 +4,7 @@ import socket
 from urllib.parse import urlparse, urljoin
 import aiohttp
 from bs4 import BeautifulSoup
-import dns.resolver
-from PySide6.QtCore import QThread, Signal
+from core.qt_compat import QThread, Signal
 
 class NetworkAnalyzerCore(QThread):
     status_update = Signal(str)
@@ -125,12 +124,11 @@ class NetworkAnalyzerCore(QThread):
             self.status_update.emit(f"Analyzing DNS for: {domain}")
             
             try:
-                dns_records = dns.resolver.resolve(domain, 'A')
-                for record in dns_records:
-                    self.status_update.emit(f"DNS record: {record.address}")
-            except dns.resolver.NoAnswer:
-                pass
-            except dns.resolver.NXDOMAIN:
+                import socket
+                _, _, ips = socket.gethostbyname_ex(domain)
+                for ip in ips:
+                    self.status_update.emit(f"DNS record: {ip}")
+            except socket.gaierror:
                 pass
 
             # Check for subdomains

@@ -239,6 +239,7 @@ class BrowserScanner(QObject):
 
     async def scan_page(self, url):
         """Scans a specific URL using the active browser session with Robust Auto-Recovery."""
+        if not HAS_PLAYWRIGHT and not HAS_PYPPETEER: return
         max_retries = 3
         for attempt in range(max_retries):
             # 1. Ensure Connection
@@ -889,6 +890,7 @@ class BrowserScanner(QObject):
 
     async def _spider_links(self):
         """Simple JS-aware spider."""
+        if not self.page: return
         # Wait for potential JS rendering
         try:
              if HAS_PLAYWRIGHT:
@@ -954,6 +956,7 @@ class BrowserScanner(QObject):
         - Mocks WebGL Vendor (GPU Spoofing)
         - Randomizes Viewport slightly
         """
+        if not self.page: return
         import random
         
         # 1. Deep Clean State
@@ -1330,7 +1333,7 @@ class BrowserScanner(QObject):
         self.log_message.emit("<span style='color:#ff0055'>[Marauder] PHASE 2: Analyzing prices for target escalation...</span>")
         try:
             # Enhanced Heuristic: look for price patterns, currency symbols, and nearby links
-            prices = await self.page.evaluate('''() => {
+            prices = await self.page.evaluate(r'''() => {
                 const results = [];
                 const regex = /(?:R\$|\$|USD|EUR)\s*([\d.,\s]+)/gi;
                 

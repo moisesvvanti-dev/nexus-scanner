@@ -6,7 +6,7 @@ with this lightweight signal implementation.
 """
 
 try:  # pragma: no cover - exercised only when PySide6 is installed
-    from PySide6.QtCore import QObject, Signal  # type: ignore
+    from PySide6.QtCore import QObject, QThread, Signal  # type: ignore
 except Exception:  # pragma: no cover - deterministic fallback for CI/headless
     class _BoundSignal:
         def __init__(self):
@@ -36,3 +36,10 @@ except Exception:  # pragma: no cover - deterministic fallback for CI/headless
     class QObject:
         def __init__(self, *args, **kwargs):
             super().__init__()
+
+    class QThread(QObject):
+        def start(self):
+            self.run()
+
+        def run(self):
+            pass

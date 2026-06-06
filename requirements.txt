@@ -1,29 +1,35 @@
+# Nexus Scanner - Python dependencies
+# NOTE: the import `dns.resolver` comes from `dnspython`; do NOT install `dns` or legacy `pydns`.
+
 # Core Execution & GUI
-PySide6>=6.6.0
-qasync>=0.27.1
+PySide6>=6.11.1
+qasync>=0.28.0
 
 # Asynchronous Networking & Scraping
-aiohttp>=3.9.0
-nest_asyncio>=1.6.0
-beautifulsoup4>=4.12.0
-lxml>=4.9.0
-fake-useragent>=1.4.0
-requests>=2.31.0
-playwright>=1.41.0
+aiohttp>=3.14.0
+requests>=2.34.2
+beautifulsoup4>=4.14.3
+lxml>=6.1.1
+fake-useragent>=2.2.0
+playwright>=1.60.0
 cloudscraper>=1.2.71
-
-# DNS, Recon & Cryptography
-dnspython>=2.6.0
-python-whois>=0.8.0
-tldextract>=5.1.0
-yarl>=1.9.4
-
-# Offensive Identifiers (Optional/Specific Tooling Bridges if needed by Core)
-wafw00f>=2.2.0
-impacket>=0.11.0
-
-# PyRoxy - Proxy Management Local Instance
-# (Can be fetched via git, or handled natively if the src code is embedded)
-
-firebase-admin>=6.5.0
 pyppeteer>=1.0.2
+yarl>=1.24.2
+
+# DNS, Recon & Intelligence
+dnspython>=2.8.0
+python-whois>=0.9.6
+tldextract>=5.3.1
+wafw00f>=2.2.0
+
+# Reporting / Cloud optional integrations
+firebase-admin>=6.5.0
+
+# Security tooling bridges
+# Nuclei and WhatWeb are external CLI tools, not Python packages:
+#   go install github.com/projectdiscovery/nuclei/v3/cmd/nuclei@latest
+#   nuclei -update && nuclei -update-templates
+#   gem install whatweb
+
+# Test/verification
+pytest>=9.0.2
