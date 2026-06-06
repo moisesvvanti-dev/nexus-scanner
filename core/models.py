@@ -44,6 +44,9 @@ class Vulnerability:
     cvss_score: float = 0.0
     remediation: str = ""
     comando_direto: str = ""
+    confidence: str = "UNVERIFIED"  # CONFIRMED, HIGH, MEDIUM, LOW, UNVERIFIED
+    evidence: str = ""
+    false_positive_note: str = ""
     timestamp: datetime = field(default_factory=datetime.now)
 
     def __post_init__(self):
@@ -67,5 +70,8 @@ class Vulnerability:
             "cvss_score": self.cvss_score,
             "impact": self.impact,
             "remediation": self.remediation,
+            "confidence": self.confidence,
+            "evidence": self.evidence,
+            "false_positive_note": self.false_positive_note,
             "timestamp": self.timestamp.isoformat()
         }

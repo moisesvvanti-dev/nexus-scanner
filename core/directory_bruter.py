@@ -1,6 +1,6 @@
 import aiohttp
 import asyncio
-from PySide6.QtCore import QObject, Signal
+from core.qt_compat import QObject, Signal
 
 class DirectoryBruter(QObject):
     finding_found = Signal(object)
@@ -103,7 +103,11 @@ class DirectoryBruter(QObject):
                             size_diff = abs(len(text) - self.baseline_404_length)
                             leniency = max(150, self.baseline_variance * 2 + len(path))
                             if size_diff <= leniency or text_decoded == self.baseline_404_text:
-                                # This is a soft 404 false positive. Ignore it.
+                                # This is a soft 404 false positive. Alert the operator and ignore it.
+                                self.log_message.emit(
+                                    f"<span style='color:#ffaa00'>[FP ALERT] Rejected soft-404 false positive: {target} "
+                                    f"(size diff={size_diff}, leniency={leniency})</span>"
+                                )
                                 return
 
                         self._report_finding(target, "Hidden File Discovered (200 OK)")
@@ -224,7 +228,9 @@ class DirectoryBruter(QObject):
             target=url,
             vuln_type="Hidden Asset" if severity == "MEDIUM" else "Auth Bypass",
             severity=severity,
-            impact=description
+            impact=description,
+            confidence="HIGH" if "BYPASS SUCCESS" in description else "MEDIUM",
+            evidence=description,
         )
         self.finding_found.emit(vuln)
         self.log_message.emit(f"<span style='color:#ffcc00'>[+] BRUTE-FORCE HIT: {url} ({description})</span>")

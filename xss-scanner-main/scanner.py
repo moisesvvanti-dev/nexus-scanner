@@ -33,11 +33,12 @@ def get_form_details(form):
     details["inputs"] = inputs
     return details
 
-# Dicionário para mapear payloads a CVEs
+# Payloads are test probes, not CVE proof. A CVE only applies after
+# fingerprinting the affected product/version and matching an advisory.
 payload_to_cve = {
-    "<script>alert('XSS')</script>": "CVE-2020-11022",
-    "\"'><script>alert('XSS')</script>": "CVE-2019-11358",
-    "<img src=x onerror=alert('XSS')>": "CVE-2020-7598"
+    "<script>alert('XSS')</script>": "N/A",
+    "\"'><script>alert('XSS')</script>": "N/A",
+    "<img src=x onerror=alert('XSS')>": "N/A"
 }
 
 # Dicionário com explicações técnicas dos payloads
@@ -99,9 +100,11 @@ def test_xss_in_form(url, form_details, payload):
             "cve": cve,
             "description": payload_descriptions.get(payload, "Descrição não disponível"),
             "scan_type": payload_scan_type.get(payload, "N/A"),
-            "owasp_category": payload_owasp_category.get(payload, "N/A")
+            "owasp_category": payload_owasp_category.get(payload, "N/A"),
+            "confidence": "HIGH" if reflected_payload else "NONE",
+            "false_positive_alert": "Payload refletido; isso é evidência de reflexão, não prova automática de execução/CVE." if reflected_payload else "Sem reflexão do payload; não marcar como vulnerabilidade."
         }
-        
+
         return result
     except requests.exceptions.RequestException as e:
         print(f"[!] Erro ao enviar requisição ao formulário: {e}")
@@ -121,23 +124,23 @@ def print_report(results, url, method_counts, input_type_counts):
     }
 
     # Desenho do novo ASCII com o nome XSS-Scanner
-    print("""
-              ,---------------------------,            
-              |  /---------------------\  |            
-              | |                       | |            
-              | |      XSS-SCANNER      | |            
-              | |   Detecta e previne   | |            
-              | |   vulnerabilidades    | |            
-              | |                       | |                        
-              |  \_____________________/  |            
-              |___________________________|            
-            ,---\_____     []     _______/------,      
-          /         /______________\           /| ___     
-        /___________________________________ /  |    )  
-        |                                   |   |   ( 
-        |  _ _ _                 [-------]  |   |    _)_  
-        |  o o o                 [-------]  |  /    /''/ 
-        |__________________________________ |/     /__/                                              
+    print(r"""
+              ,---------------------------,
+              |  /---------------------\  |
+              | |                       | |
+              | |      XSS-SCANNER      | |
+              | |   Detecta e previne   | |
+              | |   vulnerabilidades    | |
+              | |                       | |
+              |  \_____________________/  |
+              |___________________________|
+            ,---\_____     []     _______/------,
+          /         /______________\           /| ___
+        /___________________________________ /  |    )
+        |                                   |   |   (
+        |  _ _ _                 [-------]  |   |    _)_
+        |  o o o                 [-------]  |  /    /''/
+        |__________________________________ |/     /__/
     """)
 
     # Exibir a URL com linhas horizontais como título na CLI

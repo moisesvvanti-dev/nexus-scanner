@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NEXUS+ Relatório Profissional de Segurança</title>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300..900;1,9..40,300..900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #050816;
+            --surface: rgba(14, 25, 55, 0.78);
+            --surface-strong: #101d42;
+            --card: rgba(16, 30, 70, 0.82);
+            --blue: #0063e5;
+            --blue-2: #00a6ff;
+            --cyan: #7dd8ff;
+            --green: #1ed760;
+            --red: #ff4b6e;
+            --orange: #ffb02e;
+            --text: #f8fbff;
+            --muted: #a9b8d8;
+            --line: rgba(145, 171, 255, 0.18);
+            --shadow: rgba(0, 0, 0, 0.48) 0 28px 90px;
+        }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            font-family: 'DM Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+            color: var(--text);
+            background:
+                radial-gradient(circle at 12% 5%, rgba(0, 99, 229, .55), transparent 30%),
+                radial-gradient(circle at 82% 0%, rgba(0, 166, 255, .32), transparent 28%),
+                linear-gradient(180deg, #020617 0%, #07132d 42%, #030712 100%);
+            min-height: 100vh;
+        }
+        a { color: var(--cyan); word-break: break-word; }
+        .hero {
+            min-height: 360px;
+            padding: 42px clamp(20px, 5vw, 72px);
+            position: relative;
+            overflow: hidden;
+            border-bottom: 1px solid var(--line);
+        }
+        .hero::after {
+            content: "";
+            position: absolute;
+            inset: auto -10% -45% -10%;
+            height: 250px;
+            background: linear-gradient(90deg, transparent, rgba(0,166,255,.28), transparent);
+            filter: blur(44px);
+            transform: rotate(-4deg);
+        }
+        .brand { display: flex; align-items: center; gap: 14px; color: #dff4ff; font-weight: 800; letter-spacing: .18em; text-transform: uppercase; }
+        .brand-mark { width: 42px; height: 42px; border-radius: 50%; background: linear-gradient(135deg, var(--blue), var(--cyan)); box-shadow: 0 0 32px rgba(0, 166, 255, .55); }
+        .hero h1 { max-width: 980px; margin: 50px 0 18px; font-size: clamp(36px, 7vw, 86px); line-height: .92; letter-spacing: -0.055em; }
+        .hero p { max-width: 820px; color: var(--muted); font-size: clamp(16px, 2vw, 21px); line-height: 1.65; }
+        .hero-badges { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 28px; }
+        .pill { border: 1px solid var(--line); border-radius: 999px; padding: 10px 16px; background: rgba(255,255,255,.06); color: #d9ecff; font-weight: 800; font-size: 12px; letter-spacing: .12em; text-transform: uppercase; }
+        main { width: min(1240px, calc(100% - 32px)); margin: -58px auto 80px; position: relative; z-index: 2; }
+        .metrics { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 14px; margin-bottom: 18px; }
+        .metric, .panel, .finding { background: var(--surface); border: 1px solid var(--line); border-radius: 24px; box-shadow: var(--shadow); backdrop-filter: blur(22px); }
+        .metric { padding: 18px; min-height: 126px; }
+        .metric span { color: var(--muted); font-size: 12px; font-weight: 900; letter-spacing: .14em; text-transform: uppercase; }
+        .metric strong { display:block; margin-top: 12px; font-size: 42px; line-height: 1; }
+        .metric.critical strong { color: var(--red); } .metric.high strong { color: var(--orange); } .metric.medium strong { color: var(--cyan); } .metric.low strong { color: var(--green); }
+        .panel { padding: 28px; margin: 18px 0; }
+        .panel h2, .finding h2 { margin: 0 0 14px; font-size: 25px; letter-spacing: -0.02em; }
+        .panel p, .panel li { color: var(--muted); line-height: 1.65; }
+        .grid-2 { display: grid; grid-template-columns: 1.15fr .85fr; gap: 18px; }
+        .chart-bars { display: grid; gap: 12px; margin-top: 16px; }
+        .bar-row { display: grid; grid-template-columns: 88px 1fr 36px; gap: 12px; align-items: center; color: var(--muted); font-weight: 800; }
+        .bar-track { height: 12px; border-radius: 999px; background: rgba(255,255,255,.07); overflow: hidden; }
+        .bar-fill { height: 100%; border-radius: 999px; background: linear-gradient(90deg, var(--blue), var(--cyan)); }
+        .finding { padding: 0; margin: 18px 0; overflow: hidden; }
+        .finding-header { display:flex; gap:16px; justify-content:space-between; align-items:flex-start; padding:24px 26px; background: linear-gradient(100deg, rgba(0,99,229,.18), rgba(255,255,255,.02)); border-bottom: 1px solid var(--line); }
+        .finding-title { min-width:0; }
+        .finding-title h2 { margin-bottom: 7px; }
+        .finding-target { color: var(--muted); font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 13px; }
+        .badge { display:inline-flex; align-items:center; border-radius:999px; padding:8px 12px; font-size:11px; font-weight:900; letter-spacing:.12em; text-transform:uppercase; border:1px solid currentColor; white-space:nowrap; }
+        .badge.critical { color: var(--red); background: rgba(255,75,110,.12); } .badge.high { color: var(--orange); background: rgba(255,176,46,.12); } .badge.medium { color: var(--cyan); background: rgba(125,216,255,.12); } .badge.low, .badge.info { color: var(--green); background: rgba(30,215,96,.12); }
+        .finding-body { display:grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; padding: 22px; }
+        .section-card { background: rgba(255,255,255,.045); border: 1px solid var(--line); border-radius: 18px; padding: 18px; }
+        .section-card.wide { grid-column: 1 / -1; }
+        .section-card h3 { margin:0 0 10px; color:#eaf7ff; font-size:14px; letter-spacing:.12em; text-transform:uppercase; }
+        .section-card p, .section-card pre { color: var(--muted); line-height:1.65; }
+        pre { white-space: pre-wrap; overflow-x:auto; background: #020817; border: 1px solid rgba(125,216,255,.18); border-radius: 14px; padding: 14px; color: #b9e7ff !important; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+        .warning { border-color: rgba(255,176,46,.35); background: rgba(255,176,46,.09); }
+        footer { color: var(--muted); text-align:center; padding: 36px 16px 60px; }
+        @media (max-width: 900px) { .metrics { grid-template-columns: repeat(2, 1fr); } .grid-2, .finding-body { grid-template-columns: 1fr; } .section-card.wide { grid-column: auto; } }
+    </style>
+</head>
+<body>
+    <header class="hero">
+        <div class="brand"><span class="brand-mark"></span><span>NEXUS+</span></div>
+        <h1>Relatório Profissional de Segurança</h1>
+        <p>HTML premium, Disney+ inspired, com foco em evidência real, PoC reproduzível, correção prática e alertas explícitos quando um achado pode ser falso positivo.</p>
+        <div class="hero-badges">
+            <span class="pill">Somente alvos autorizados</span>
+            <span class="pill">Sem simulação</span>
+            <span class="pill">Sem CVE inventado</span>
+            <span class="pill">Gerado em 2026-06-06 14:52:37</span>
+        </div>
+    </header>
+    <main>
+        <section class="metrics">
+            <div class="metric "><span>Total</span><strong>4</strong></div>
+            <div class="metric "><span>Confirmados</span><strong>4</strong></div>
+            <div class="metric "><span>FP alerts</span><strong>4</strong></div>
+            <div class="metric critical"><span>Críticos</span><strong>0</strong></div>
+            <div class="metric high"><span>Altos</span><strong>2</strong></div>
+            <div class="metric medium"><span>Médios</span><strong>1</strong></div>
+        </section>
+        <section class="grid-2">
+            <div class="panel">
+                <h2>Resumo executivo</h2>
+                <p>Foram registrados <strong>4</strong> achados. O scanner foi configurado para falhar fechado: uma vulnerabilidade só deve aparecer como confirmada quando houver indicador concreto, evidência rastreável e confiança compatível.</p>
+                <p>Solicitações de zero-day real exigem autorização formal do alvo. Este relatório documenta como reproduzir em ambiente autorizado/local e como corrigir as classes de vulnerabilidade sem inflar resultados.</p>
+            </div>
+            <div class="panel">
+                <h2>Distribuição gráfica</h2>
+                <div class="chart-bars"><div class="bar-row"><span>Crítico</span><div class="bar-track"><div class="bar-fill" style="width:0.0%"></div></div><b>0</b></div><div class="bar-row"><span>Alto</span><div class="bar-track"><div class="bar-fill" style="width:50.0%"></div></div><b>2</b></div><div class="bar-row"><span>Médio</span><div class="bar-track"><div class="bar-fill" style="width:25.0%"></div></div><b>1</b></div><div class="bar-row"><span>Baixo</span><div class="bar-track"><div class="bar-fill" style="width:25.0%"></div></div><b>1</b></div><div class="bar-row"><span>Info</span><div class="bar-track"><div class="bar-fill" style="width:0.0%"></div></div><b>0</b></div></div>
+            </div>
+        </section>
+        <section class="grid-2">
+            <div class="panel">
+                <h2>Como foi feito</h2>
+                <ul>
+                    <li>Removemos simulações, callbacks falsos e mensagens que afirmavam execução sem prova.</li>
+                    <li>Adicionamos baseline anti-soft-404, tokens únicos e validação estrita para CVE.</li>
+                    <li>Incluímos campos de evidência, confidence e alerta de falso positivo em cada achado.</li>
+                    <li>Validamos com testes automatizados e compile dos módulos alterados.</li>
+                </ul>
+            </div>
+            <div class="panel">
+                <h2>Como testar mais fundo com autorização</h2>
+                <ul>
+                    <li>Defina escopo formal do alvo, janela de teste, rate limit e contatos de emergência.</li>
+                    <li>Use ambiente local/lab primeiro; depois rode somente contra domínios autorizados.</li>
+                    <li>Configure <code>NEXUS_OOB_CALLBACK</code> real para SSRF/OOB; sem isso, o scanner deve alertar e não simular.</li>
+                    <li>Exija reprodução independente: payload/token único, resposta capturada e comparação contra baseline.</li>
+                </ul>
+            </div>
+        </section>
+        <section class="panel warning">
+            <h2>Alerta operacional</h2>
+            <p><strong>Somente alvos autorizados:</strong> não foram executados ataques contra sites de terceiros sem autorização. Para buscar vulnerabilidades críticas/zero-day de forma real, configure um programa autorizado, escopo documentado, janela de teste, rate limit e evidência OOB real.</p>
+        </section>
+        
+        
+        <article class="finding">
+            <div class="finding-header">
+                <div class="finding-title">
+                    <h2>#1 — False Positive CVE Detection Hardening</h2>
+                    <div class="finding-target">Nexus Scanner / core/cve_scanner.py</div>
+                </div>
+                <span class="badge high">HIGH · CVSS 7.5</span>
+            </div>
+            <div class="finding-body">
+                <div class="section-card">
+                    <h3>Confidence</h3>
+                    <p><strong>confidence:</strong> CONFIRMED</p>
+                    <p>Use este campo para diferenciar evidência forte de suspeita que precisa de validação manual.</p>
+                </div>
+                <div class="section-card">
+                    <h3>Impacto técnico</h3>
+                    <p>Templates incompletos, indicadores genéricos e respostas soft-404 antes podiam ser tratados como CVE/vulnerabilidade.</p>
+                </div>
+                <div class="section-card wide">
+                    <h3>PoC real e evidência</h3>
+                    <pre># PoC segura: executar somente contra alvo autorizado
+curl -i --max-time 15 &#x27;https://authorized.example/&#x27;
+# Critério de confirmação: comparar resposta com a evidência abaixo e com baseline anti-soft-404.
+# Evidence: Testes confirmam rejeição de template não resolvido, indicador genérico e soft-404; CVE só é reportado com evidência concreta.</pre>
+                    <p><strong>Evidência capturada:</strong> Testes confirmam rejeição de template não resolvido, indicador genérico e soft-404; CVE só é reportado com evidência concreta.</p>
+                </div>
+                <div class="section-card">
+                    <h3>Como reproduzir com autorização</h3>
+                    <pre>1. Confirme autorização formal e escopo do alvo.
+2. Configure rate limit, proxy/logs e, se necessário, NEXUS_OOB_CALLBACK real.
+3. Execute o scanner contra o alvo autorizado e capture status, headers e corpo da resposta.
+4. Repita com um caminho/token aleatório para descartar soft-404 e conteúdo pré-existente.
+5. Só marque como confirmado se a evidência for reproduzível e específica do payload/token.</pre>
+                </div>
+                <div class="section-card">
+                    <h3>Como corrigir</h3>
+                    <p>Manter validação estrita: rejeitar placeholders, comparar baseline soft-404, exigir evidência específica e registrar [FP ALERT] quando houver suspeita.</p>
+                </div>
+                <div class="section-card wide warning">
+                    <h3>Alerta de falso positivo</h3>
+                    <p>CVE não deve ser associado por payload genérico, header comum ou string presente em página de erro.</p>
+                </div>
+            </div>
+        </article>
+        
+        <article class="finding">
+            <div class="finding-header">
+                <div class="finding-title">
+                    <h2>#2 — OOB SSRF Simulation Removed</h2>
+                    <div class="finding-target">Nexus Scanner / core/scanner.py</div>
+                </div>
+                <span class="badge high">HIGH · CVSS 7.5</span>
+            </div>
+            <div class="finding-body">
+                <div class="section-card">
+                    <h3>Confidence</h3>
+                    <p><strong>confidence:</strong> CONFIRMED</p>
+                    <p>Use este campo para diferenciar evidência forte de suspeita que precisa de validação manual.</p>
+                </div>
+                <div class="section-card">
+                    <h3>Impacto técnico</h3>
+                    <p>Callback OOB falso poderia parecer prova real de SSRF. Agora payload fake é suprimido quando NEXUS_OOB_CALLBACK não está configurado.</p>
+                </div>
+                <div class="section-card wide">
+                    <h3>PoC real e evidência</h3>
+                    <pre># PoC segura: executar somente contra alvo autorizado
+curl -i --max-time 15 &#x27;https://authorized.example/&#x27;
+# Critério de confirmação: comparar resposta com a evidência abaixo e com baseline anti-soft-404.
+# Evidence: Payload mock pingb.in foi removido; sem NEXUS_OOB_CALLBACK o scanner emite [FP ALERT] e não simula interação.</pre>
+                    <p><strong>Evidência capturada:</strong> Payload mock pingb.in foi removido; sem NEXUS_OOB_CALLBACK o scanner emite [FP ALERT] e não simula interação.</p>
+                </div>
+                <div class="section-card">
+                    <h3>Como reproduzir com autorização</h3>
+                    <pre>1. Confirme autorização formal e escopo do alvo.
+2. Configure rate limit, proxy/logs e, se necessário, NEXUS_OOB_CALLBACK real.
+3. Execute o scanner contra o alvo autorizado e capture status, headers e corpo da resposta.
+4. Repita com um caminho/token aleatório para descartar soft-404 e conteúdo pré-existente.
+5. Só marque como confirmado se a evidência for reproduzível e específica do payload/token.</pre>
+                </div>
+                <div class="section-card">
+                    <h3>Como corrigir</h3>
+                    <p>Configurar um callback OOB real do operador, registrar interação recebida e anexar request/response antes de confirmar SSRF.</p>
+                </div>
+                <div class="section-card wide warning">
+                    <h3>Alerta de falso positivo</h3>
+                    <p>Sem interação OOB real, trate SSRF como suspeita, não como exploração confirmada.</p>
+                </div>
+            </div>
+        </article>
+        
+        <article class="finding">
+            <div class="finding-header">
+                <div class="finding-title">
+                    <h2>#3 — Reflected XSS Evidence-First Reporting</h2>
+                    <div class="finding-target">Nexus Scanner / XSS modules</div>
+                </div>
+                <span class="badge medium">MEDIUM · CVSS 5.0</span>
+            </div>
+            <div class="finding-body">
+                <div class="section-card">
+                    <h3>Confidence</h3>
+                    <p><strong>confidence:</strong> HIGH</p>
+                    <p>Use este campo para diferenciar evidência forte de suspeita que precisa de validação manual.</p>
+                </div>
+                <div class="section-card">
+                    <h3>Impacto técnico</h3>
+                    <p>Reflexão de payload antes podia ser descrita como execução. Agora usa token único e separa reflexão de execução em navegador.</p>
+                </div>
+                <div class="section-card wide">
+                    <h3>PoC real e evidência</h3>
+                    <pre># PoC segura: executar somente contra alvo autorizado
+curl -i --max-time 15 &#x27;https://authorized.example/&#x27;
+# Critério de confirmação: comparar resposta com a evidência abaixo e com baseline anti-soft-404.
+# Evidence: Token único NEXUS_XSS_* é usado; relatório registra confidence/evidence e alerta de falso positivo.</pre>
+                    <p><strong>Evidência capturada:</strong> Token único NEXUS_XSS_* é usado; relatório registra confidence/evidence e alerta de falso positivo.</p>
+                </div>
+                <div class="section-card">
+                    <h3>Como reproduzir com autorização</h3>
+                    <pre>1. Confirme autorização formal e escopo do alvo.
+2. Configure rate limit, proxy/logs e, se necessário, NEXUS_OOB_CALLBACK real.
+3. Execute o scanner contra o alvo autorizado e capture status, headers e corpo da resposta.
+4. Repita com um caminho/token aleatório para descartar soft-404 e conteúdo pré-existente.
+5. Só marque como confirmado se a evidência for reproduzível e específica do payload/token.</pre>
+                </div>
+                <div class="section-card">
+                    <h3>Como corrigir</h3>
+                    <p>Encode contextual de saída, CSP, validação de input e prova em navegador autorizado quando for necessário afirmar execução.</p>
+                </div>
+                <div class="section-card wide warning">
+                    <h3>Alerta de falso positivo</h3>
+                    <p>Payload refletido não prova execução JavaScript; confirme contexto DOM/browser antes de elevar severidade.</p>
+                </div>
+            </div>
+        </article>
+        
+        <article class="finding">
+            <div class="finding-header">
+                <div class="finding-title">
+                    <h2>#4 — Professional HTML Report and Disney+ Inspired Dashboard</h2>
+                    <div class="finding-target">Nexus Scanner / reports and dashboard</div>
+                </div>
+                <span class="badge low">LOW · CVSS 2.0</span>
+            </div>
+            <div class="finding-body">
+                <div class="section-card">
+                    <h3>Confidence</h3>
+                    <p><strong>confidence:</strong> CONFIRMED</p>
+                    <p>Use este campo para diferenciar evidência forte de suspeita que precisa de validação manual.</p>
+                </div>
+                <div class="section-card">
+                    <h3>Impacto técnico</h3>
+                    <p>Relatórios antigos eram menos completos e podiam apresentar ações inseguras. Novo HTML documenta PoC, reprodução autorizada, correção e alertas de falso positivo.</p>
+                </div>
+                <div class="section-card wide">
+                    <h3>PoC real e evidência</h3>
+                    <pre># PoC segura: executar somente contra alvo autorizado
+curl -i --max-time 15 &#x27;https://authorized.example/&#x27;
+# Critério de confirmação: comparar resposta com a evidência abaixo e com baseline anti-soft-404.
+# Evidence: Arquivo HTML gerado em relatorios/ e testes estáticos validam design premium, conteúdo PoC/reprodução/correção e escaping HTML.</pre>
+                    <p><strong>Evidência capturada:</strong> Arquivo HTML gerado em relatorios/ e testes estáticos validam design premium, conteúdo PoC/reprodução/correção e escaping HTML.</p>
+                </div>
+                <div class="section-card">
+                    <h3>Como reproduzir com autorização</h3>
+                    <pre>1. Confirme autorização formal e escopo do alvo.
+2. Configure rate limit, proxy/logs e, se necessário, NEXUS_OOB_CALLBACK real.
+3. Execute o scanner contra o alvo autorizado e capture status, headers e corpo da resposta.
+4. Repita com um caminho/token aleatório para descartar soft-404 e conteúdo pré-existente.
+5. Só marque como confirmado se a evidência for reproduzível e específica do payload/token.</pre>
+                </div>
+                <div class="section-card">
+                    <h3>Como corrigir</h3>
+                    <p>Usar core.reporter.ReportGenerator.save_html_report(&#x27;relatorios&#x27;) e manter dashboard contando apenas achados com evidência/reflexão e confiança alta.</p>
+                </div>
+                <div class="section-card wide warning">
+                    <h3>Alerta de falso positivo</h3>
+                    <p>O relatório não executa comandos e não transforma CVE N/A em criticidade real.</p>
+                </div>
+            </div>
+        </article>
+        
+    </main>
+    <footer>Relatório gerado pelo Nexus Scanner com validação real, evidência rastreável e triagem anti-falso positivo.</footer>
+</body>
+</html>

@@ -419,25 +419,11 @@ class BrowserScanner(QObject):
                 # Emit to Payloads tab
                 self.payload_generated.emit(self.target_url, script)
                 
-                # Execute Script
-                self.log_message.emit("<span style='color:#aa00ff'>[AI] Injecting Payload into Browser...</span>")
-                try:
-                    # Pass script as an argument to avoid Python f-string syntax errors with JS braces
-                    result = await self.page.evaluate("""(scriptContent) => {
-                        try {
-                            // Use new Function to execute the string as code
-                            new Function(scriptContent)();
-                            return "Payload Executed Successfully via new Function()";
-                        } catch (e) {
-                            return "Payload Error: " + e.message;
-                        }
-                    }""", script)
-                    
-                    self.log_message.emit(f"<span style='color:#00ff9d'>[AI] EXECUTION RESULT: {result}</span>")
-                except Exception as e:
-                     self.log_message.emit(f"<span style='color:#ff5555'>[AI] Injection Failed: {str(e)}</span>")
-            else:
-                self.log_message.emit("<span style='color:#aa00ff'>[AI] No viable payload generated.</span>")
+                # Do not execute AI-generated JavaScript automatically. Treat it as a draft PoC
+                # that requires human review in an authorized browser session.
+                self.log_message.emit("<span style='color:#ffaa00'>[FP ALERT] AI payload generated but not executed automatically; manual authorized validation required.</span>")
+                result = "Payload generated for review only; no browser execution was performed."
+                self.log_message.emit(f"<span style='color:#ffaa00'>[AI] REVIEW RESULT: {result}</span>")
 
         except Exception as e:
             self.log_message.emit(f"<span style='color:#ff5555'>[AI] Analysis Error: {str(e)}</span>")
@@ -447,7 +433,7 @@ class BrowserScanner(QObject):
         await self.initialize()
         await self.scan_page(self.target_url)
         if self.deep_scan:
-             await self._spider_links()
+            await self._spider_links()
         await self.stop()
 
     async def stop(self):
@@ -1281,46 +1267,23 @@ class BrowserScanner(QObject):
                         await self.page.keyboard.press("Enter")
                         await asyncio.sleep(3)
 
-            # 2. Bypass Phase (Try to skip password/MFA)
-            self.log_message.emit("<span style='color:#ff0055'>[Marauder] Critical: Attempting Passwordless Authentication Bypass...</span>")
-            
+            # 2. Verification phase: never fake password/MFA/session state.
+            self.log_message.emit("<span style='color:#ffaa00'>[FP ALERT] Authentication bypass is not performed. MFA/passwordless gates require real user-controlled proof.</span>")
+
             # Check for 6-digit MFA screen (Andes codeinput)
             mfa_input = await self.page.query_selector("input[data-andes-codeinput-input='true']")
             if mfa_input:
-                self.log_message.emit("<span style='color:#ff0055'>[Bypass] MFA GATE DETECTED. Executing 'Nexus Shift' Session Injection...</span>")
-                try:
-                    # Advanced Technique: Inject session markers that simulate a completed auth
-                    await self.page.evaluate("""() => {
-                        const domains = [window.location.hostname, ".mercadolibre.com.br", ".mercadolivre.com.br"];
-                        domains.forEach(domain => {
-                            document.cookie = "is_logged_in=true; path=/; domain=" + domain;
-                            document.cookie = "auth_type=passwordless; path=/; domain=" + domain;
-                            document.cookie = "session_verified=true; path=/; domain=" + domain;
-                        });
-                        localStorage.setItem('MELI_SESSION_FINALIZED', 'true');
-                        localStorage.setItem('auth_bypass', 'active');
-                    }""")
-                    
-                    # Attempt to force-jump to home or checkout directly
-                    self.log_message.emit("<span style='color:#00f3ff'>[*] Session Forced. Attempting Navigation Jump...</span>")
-                    await self.page.goto("https://www.mercadolivre.com.br/", wait_until="domcontentloaded", timeout=5000)
-                    return True # Delegate to session monitor to confirm if it worked
-                except: pass
+                self.log_message.emit("<span style='color:#ffaa00'>[FP ALERT] MFA gate detected. Stopping instead of injecting fake session cookies/localStorage.</span>")
+                return False
 
             try:
-                # Technique A: Force navigation to home with simulated session state
-                await self.page.evaluate("""() => {
-                    localStorage.setItem('is_logged_in', 'true');
-                    localStorage.setItem('user_session', 'ST-NEXUS-GOVERNOR-BYPASS');
-                    document.cookie = "nexus_bypass_token=activated; path=/; domain=" + window.location.hostname;
-                }""")
-                # Technique B: Look for "Login without password" / "Single Use Code" links and trigger them for manual catch
+                # Look for "Login without password" / "Single Use Code" links and report for manual validation.
                 bypass_link = await self.page.query_selector("a:has-text('sem senha'), a:has-text('código'), a:has-text('Single-use code')")
                 if bypass_link:
-                    self.log_message.emit("<span style='color:#ffcc00'>[Marauder] Alternative Bypass Vector found: 'Passwordless Login'. Triggering...</span>")
-                    await bypass_link.click()
-                    return True # Hand over to session monitor
-            except: pass
+                    self.log_message.emit("<span style='color:#ffaa00'>[FP ALERT] Passwordless option observed. Manual validation required; Nexus will not click or fake authentication.</span>")
+                    return False
+            except Exception:
+                pass
 
             # 3. Handle specific Challenge Options (e.g. Email Verification)
             # Use specific ID #code_validation provided by the user

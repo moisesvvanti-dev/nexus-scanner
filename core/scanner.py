@@ -7,7 +7,7 @@ import os
 import time
 from typing import List, Dict, Any, Optional, Union
 from urllib.parse import urlparse, parse_qs, urlencode, urlunparse, urljoin
-from PySide6.QtCore import QObject, Signal
+from core.qt_compat import QObject, Signal
 import dns.resolver
 import tldextract
 import whois
@@ -1234,11 +1234,11 @@ class NexusScanner(QObject):
         pass
 
     def apply_payload_encoding(self, payload):
-        """Dynamically encodes payloads (URL, Base64) to prevent parser crashes and guarantee valid tokenization."""
+        """Dynamically encodes payloads (URL/Base64) while keeping evidence traceable."""
         import urllib.parse
         
         if getattr(self, 'governor_mode', False):
-            # Weighted random choice based on WAF Heuristics
+
             strategies = {
                 'url_encode': lambda p: urllib.parse.quote(p),
                 'double_url_encode': lambda p: urllib.parse.quote(urllib.parse.quote(p)),
@@ -1412,15 +1412,17 @@ class NexusScanner(QObject):
                 'rO0ABXNyAA5qYXZhLmxhbmcuTG9uZw;', 
                 'Tzo4OiJzdGRDbGFzcyI6MDp7fQ==' # B64 PHP
             ]
-            import socket
-            hostname = socket.gethostname()
+            oob_callback = os.getenv("NEXUS_OOB_CALLBACK")
             active_payloads['Blind SSRF / OOB'] = [
                 f"http://127.0.0.1:22",
                 f"file:///etc/passwd",
                 f"http://localhost/admin",
                 f"http://169.254.169.254/latest/meta-data/",
-                f"http://pingb.in/p/{hostname}" # Interaction simulation mock
             ]
+            if oob_callback:
+                active_payloads['Blind SSRF / OOB'].append(oob_callback)
+            else:
+                self.log_message.emit("<span style='color:#ffaa00'>[FP ALERT] OOB SSRF callback not configured (NEXUS_OOB_CALLBACK); skipping unverified callback payloads.</span>")
 
         # Load safe_fuzz_cases dynamically to improve performance
         try:
@@ -1814,11 +1816,11 @@ class NexusScanner(QObject):
                             ip_obj = ipaddress.ip_address(ip)
                             if not ip_obj.is_private:
                                 self.log_message.emit(f"<span style='color:#00f3ff'>[*] Analyzing Public IP: {ip}</span>")
-                                # 1. Geolocation (Simulated or via API if available, here just log)
+                                # 1. Geolocation is intentionally not inferred here. Use a real geo-IP provider before reporting geography.
                                 # 2. Direct IP Access Check (Misconfigured VHosts)
                                 async def check_direct_ip():
                                     try:
-                                        # Try HTTP/HTTPS access to IP
+
                                         for proto in ['http', 'https']:
                                             target_ip = f"{proto}://{ip}"
                                             s, c, h, l = await self._safe_request('GET', target_ip, timeout=5, verify_ssl=False)
@@ -2156,13 +2158,14 @@ class NexusScanner(QObject):
         from bs4 import BeautifulSoup as bs
         from urllib.parse import urljoin
         
+        token = f"NEXUS_XSS_{int(time.time() * 1000)}"
         xss_payloads = [
-            "<script>alert('XSS')</script>",
-            "\"'><script>alert('XSS')</script>",
-            "<img src=x onerror=alert('XSS')>",
-            "javascript:alert(1)//"
+            f"<script>alert('{token}')</script>",
+            f"\"'><script>alert('{token}')</script>",
+            f"<img src=x onerror=alert('{token}')>",
+            f"javascript:alert('{token}')//"
         ]
-        
+
         status, content, _, _ = await self._safe_request('GET', url, timeout=10)
         if not content: return
         
@@ -2211,10 +2214,17 @@ class NexusScanner(QObject):
                         s, c, h, l = await self._safe_request('GET', target_url, params=data, timeout=5)
                     
                     if c and payload.encode() in c:
-                        vuln = Vulnerability(target=target_url, vuln_type="Cross-Site Scripting (Reflected XSS)", severity="HIGH", impact=f"Payload Reflected: {payload[:25]}")
+                        vuln = Vulnerability(
+                            target=target_url,
+                            vuln_type="Cross-Site Scripting (Reflected XSS)",
+                            severity="HIGH",
+                            impact=f"Unique payload token reflected without full neutralization: {payload}",
+                            confidence="HIGH",
+                            evidence=token,
+                        )
                         self._emit_finding(vuln)
-                        self.log_message.emit(f"<span style='color:#ff0055'>[!] VULNERABLE TO XSS: {target_url} (Payload executed)</span>")
-                        self.save_evidence(target_url, "XSS_Reflection", c)
+                        self.log_message.emit(f"<span style='color:#ff0055'>[!] XSS REFLECTION CONFIRMED: {target_url} (unique token reflected; manual/browser execution proof still recommended)</span>")
+
                         break # Found vulnerability on this form, break payload loop to save time
                 except Exception: 
                     pass
